@@ -8,7 +8,7 @@ from astropy import units as u
 from astropy.wcs import WCS
 from astropy.tests.helper import assert_quantity_allclose
 
-from glue.core import Data
+from glue.core import Data, DataCollection
 from glue.core.component import Component
 from glue.core.coordinates import WCSCoordinates
 
@@ -105,4 +105,36 @@ def test_to_spectrum1d_with_spectral_coordinates():
     spec = data.get_object(Spectrum1D, attribute=data.id['x'])
     assert_quantity_allclose(spec.spectral_axis, [1, 4, 10] * u.micron)
     assert_quantity_allclose(spec.flux, [3, 4, 5] * u.Jy)
+
+
+def test_from_spectrum1d_with_wcs():
+
+    wcs = WCS(naxis=1)
+    wcs.wcs.ctype = ['VELO-LSR']
+    wcs.wcs.set()
+
+    spec = Spectrum1D([1, 2, 3, 4] * u.Jy, wcs=wcs)
+
+    data_collection = DataCollection()
+    
+    data_collection['spectrum'] = spec
+
+    data = data_collection['spectrum']
+
+    assert isinstance(data, Data)
+    assert len(data.main_components) == 1
+    assert data.main_components[0].label == 'flux'
+    assert_allclose(data['flux'], [1, 2, 3, 4])
+    component = data.get_component('flux')
+    assert component.units == 'Jy'
+
+    # Check round-tripping
+    spec_new = data.get_object(attribute='flux')
+    assert isinstance(spec_new, Spectrum1D)
+    spec_new = data.get_object(attribute=data.id['x'])
+    assert_quantity_allclose(spec_new.spectral_axis, [1, 4, 10] * u.micron)
+    assert_quantity_allclose(spec_new.flux, [3, 4, 5] * u.Jy)
+
+
+# def test_from_spectrum1d_with_lookup_table():
 

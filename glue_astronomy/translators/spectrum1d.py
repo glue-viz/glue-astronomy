@@ -14,11 +14,10 @@ from specutils import Spectrum1D
 class Specutils1DHandler:
 
     def to_data(self, obj):
-        data = Data()
-        if obj.wcs is not None:
-            data.coords = WCSCoordinates(wcs=obj.wcs)
-        data['array'] = obj.data
-        data.get_component('array').units = str(obj.unit)
+        coords = SpectralCoordinates(obj.spectral_axis)
+        data = Data(coords=coords)
+        data['flux'] = obj.flux
+        data.get_component('flux').units = str(obj.unit)
         data.meta.update(obj.meta)
         return data
 
@@ -59,6 +58,9 @@ class Specutils1DHandler:
         else:
 
             raise TypeError('data.coords should be an instance of WCSCoordinates or SpectralCoordinates')
+
+        if isinstance(attribute, str):
+            attribute = data.id[attribute]
 
         component = data.get_component(attribute)
 
