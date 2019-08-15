@@ -67,12 +67,14 @@ class Specutils1DHandler:
             # Get units and attach to value
             values = data.compute_statistic(statistic, attribute, axis=axes,
                                             subset_state=subset_state)
+            mask = None
         else:
-            values = component.data
+            values = data.get_data(attribute)
+            if subset_state is None:
+                mask = None
+            else:
+                mask = data.get_mask(subset_state=subset_state)
 
-        if component.units is None:
-            values = values * u.one
-        else:
-            values = values * u.Unit(component.units)
+        values = values * u.Unit(component.units)
 
-        return Spectrum1D(values, **kwargs)
+        return Spectrum1D(values, mask=mask, **kwargs)

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 
 from specutils import Spectrum1D
 
@@ -32,6 +32,44 @@ def test_to_spectrum1d():
 
     assert_quantity_allclose(spec.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
     assert_quantity_allclose(spec.flux, [3.4, 2.3, -1.1, 0.3] * u.Jy)
+
+    data.add_subset(data.id['x'] > 1, label='bright')
+
+    spec_subset = data.get_subset_object(cls=Spectrum1D, subset_id=0,
+                                         attribute=data.id['x'])
+
+    assert_quantity_allclose(spec_subset.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
+    assert_quantity_allclose(spec_subset.flux, [3.4, 2.3, -1.1, 0.3] * u.Jy)
+    assert_equal(spec_subset.mask, [1, 1, 0, 0])
+
+
+def test_to_spectrum1d_unitless():
+
+    # Set up simple spectral WCS
+    wcs = WCS(naxis=1)
+    wcs.wcs.ctype = ['VELO-LSR']
+    wcs.wcs.set()
+
+    # Set up glue Coordinates object
+    coords = WCSCoordinates(wcs=wcs)
+
+    data = Data(label='spectrum', coords=coords)
+    data.add_component(Component(np.array([3.4, 2.3, -1.1, 0.3])), 'x')
+
+    spec = data.get_object(Spectrum1D, attribute=data.id['x'])
+
+    assert_quantity_allclose(spec.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
+    assert_quantity_allclose(spec.flux, [3.4, 2.3, -1.1, 0.3] * u.one)
+
+
+def test_to_spectrum1d_invalid():
+
+    data = Data(label='not-a-spectrum')
+    data.add_component(Component(np.array([3.4, 2.3, -1.1, 0.3]), units='Jy'), 'x')
+
+    with pytest.raises(TypeError) as exc:
+        data.get_object(Spectrum1D, attribute=data.id['x'])
+    assert exc.value.args[0] == 'data.coords should be an instance of WCSCoordinates or SpectralCoordinates'
 
 
 def test_to_spectrum1d_from_3d_cube():
@@ -67,3 +105,4 @@ def test_to_spectrum1d_with_spectral_coordinates():
     spec = data.get_object(Spectrum1D, attribute=data.id['x'])
     assert_quantity_allclose(spec.spectral_axis, [1, 4, 10] * u.micron)
     assert_quantity_allclose(spec.flux, [3, 4, 5] * u.Jy)
+
