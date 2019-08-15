@@ -1,5 +1,3 @@
-import os
-
 from pkg_resources import get_distribution, DistributionNotFound
 
 try:
@@ -9,4 +7,4 @@ except DistributionNotFound:
 
 
 def setup():
-    pass
+    from glue_astronomy.translators import spectrum1d
