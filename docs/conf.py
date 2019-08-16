@@ -3,7 +3,6 @@
 # Glue documentation build configuration file
 
 import os
-import sys
 from pkg_resources import get_distribution
 
 # -- General configuration ----------------------------------------------------
@@ -34,10 +33,11 @@ intersphinx_cache_limit = 10     # days to keep the cached inventories
 intersphinx_mapping = {
     'sphinx': ('https://www.sphinx-doc.org/en/latest/', None),
     'python': ('https://docs.python.org/3.7', None),
-    'matplotlib': ('https://matplotlib.org', None),
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'echo': ('https://echo.readthedocs.io/en/latest/', None),
+    'glue': ('http://docs.glueviz.org/en/latest/', None),
+    'specutils': ('https://specutils.readthedocs.io/en/latest/', None),
+    'regions': ('https://astropy-regions.readthedocs.io/en/latest/', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -78,7 +78,7 @@ except ImportError:
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/logo.png'
+# html_logo = '_static/logo.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -88,7 +88,7 @@ html_logo = '_static/logo.png'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'Gluedoc'

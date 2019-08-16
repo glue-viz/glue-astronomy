@@ -96,7 +96,7 @@ includes a package called `regions <https://astropy-regions.readthedocs.io>`_
 that provides a way to represent regions of interet, and the **glue-astronomy**
 plugin makes it easy to convert selections from glue to Astropy regions.
 
-To illustrate this, we start from a :class:`~astropy.nddata.CCData` object and
+To illustrate this, we start from a :class:`~astropy.nddata.CCDData` object and
 use the infrastructure shown in `Datasets and subsets`_ to add this to a glue
 data collection:
 
