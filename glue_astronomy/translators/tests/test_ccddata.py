@@ -5,11 +5,10 @@ from numpy.testing import assert_allclose, assert_equal
 from astropy import units as u
 from astropy.nddata import CCDData
 from astropy.wcs import WCS
-from astropy.tests.helper import assert_quantity_allclose
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
-from glue.core.coordinates import WCSCoordinates
+from glue.core.coordinates import Coordinates, WCSCoordinates
 
 WCS_CELESTIAL = WCS(naxis=2)
 WCS_CELESTIAL.wcs.ctype = ['RA---TAN', 'DEC--TAN']
@@ -64,6 +63,17 @@ def test_to_ccddata_invalid():
     with pytest.raises(ValueError) as exc:
         data.get_object(CCDData, attribute=data.id['x'])
     assert exc.value.args[0] == 'Only 2-dimensional datasets can be converted to CCDData'
+
+    class FakeCoordinates(Coordinates):
+        pass
+
+    coords = FakeCoordinates()
+    data = Data(label='image-with-custom-coords', coords=coords)
+    data.add_component(Component(np.array([[3, 4], [4, 5]]), units='Jy'), 'x')
+
+    with pytest.raises(TypeError) as exc:
+        data.get_object(CCDData, attribute=data.id['x'])
+    assert exc.value.args[0] == 'data.coords should be an instance of Coordinates or WCSCoordinates'
 
 
 def test_to_ccddata_default_attribute():
