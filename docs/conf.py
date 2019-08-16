@@ -35,7 +35,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3.7', None),
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'glue': ('http://docs.glueviz.org/en/latest/', None),
+    'glue-astronomy': ('http://docs.glueviz.org/en/latest/', None),
     'specutils': ('https://specutils.readthedocs.io/en/latest/', None),
     'regions': ('https://astropy-regions.readthedocs.io/en/latest/', None)
 }
@@ -50,8 +50,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Glue'
-copyright = u'2012-2019, Chris Beaumont, Thomas Robitaille, Michelle Borkin'
+project = u'glue-astronomy'
+copyright = u'2019, Thomas Robitaille'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -99,7 +99,7 @@ htmlhelp_basename = 'Gluedoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'Glue.tex', u'Glue Documentation',
-     u'Chris Beaumont, Thomas Robitaille, Michelle Borkin', 'manual'),
+     u'Thomas Robitaille', 'manual'),
 ]
 
 # -- Options for manual page output -------------------------------------------
@@ -107,8 +107,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'glue', u'Glue Documentation',
-     [u'Chris Beaumont, Thomas Robitaille, Michelle Borkin'], 1)
+    ('index', 'glue-astronomy', u'Glue Documentation',
+     [u'Thomas Robitaille'], 1)
 ]
 
 # -- Options for Texinfo output -----------------------------------------------
@@ -117,9 +117,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'Glue', u'Glue Documentation',
-     u'Chris Beaumont, Thomas Robitaille, Michelle Borkin',
-     'Glue', 'One line description of project.', 'Miscellaneous'),
+    ('index', 'glue-astronomy', u'Glue Documentation',
+     u'Thomas Robitaille',
+     'glue-astronomy', 'One line description of project.', 'Miscellaneous'),
 ]
 
 # -- Additional options------- ------------------------------------------------
