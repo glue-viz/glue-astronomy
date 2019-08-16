@@ -12,6 +12,9 @@ data classes. At this time, the following data classes are supported:
 * :class:`~specutils.Spectrum1D` for spectra (from the `specutils
   <https://specutils.readthedocs.io>`_ package)
 
+Datasets and subsets
+--------------------
+
 We will now take a look at how to use this functionality using
 :class:`~specutils.Spectrum1D` as an example, but the workflow is identical for
 the other data classes. To start off, we can create a
@@ -75,4 +78,82 @@ outside of the subset::
 
 .. TODO: need to make sure the __repr__ for NDData objects includes the mask
 
+Note that the :meth:`~glue.core.data.BaseData.get_subset_object` method is used
+to get a data object with the subset of values from a given glue subset - if
+instead you are interested in getting a representation of the selection (in
+the above case it would be the idea that the selection is 'flux > 1' rather
+than the actual values that match that selection), you should take a look
+at the `Selection information`_ section.
 
+Selection information
+---------------------
+
+As seen in the previous section, we can convert glue data objects and subsets
+from/to Astropy data container classes such as :class:`~specutils.Spectrum1D`.
+However, in some cases you may want to access the abstract selection information
+rather than the actual data values that are in a subset. The Astropy project
+includes a package called `regions <https://astropy-regions.readthedocs.io>`_
+that provides a way to represent regions of interet, and the **glue-astronomy**
+plugin makes it easy to convert selections from glue to Astropy regions.
+
+To illustrate this, we start from a :class:`~astropy.nddata.CCData` object and
+use the infrastructure shown in `Datasets and subsets`_ to add this to a glue
+data collection:
+
+.. testsetup::
+
+    >>> from glue.core import DataCollection
+    >>> dc = DataCollection()
+
+.. doctest::
+
+    >>> import numpy as np
+    >>> from astropy import units as u
+    >>> from astropy.nddata import CCDData
+    >>> image = CCDData(np.random.random((128, 128)) * u.Jy)
+    >>> dc['myimage'] = image
+
+Let's now assume that you define a rectangular selection graphically. We can
+also do this programmatically but it is more complicated::
+
+    >>> from glue.core.roi import RectangularROI
+    >>> from glue.core.subset import RoiSubsetState
+    >>> subset_state = RoiSubsetState(dc['myimage'].pixel_component_ids[1],
+    ...                               dc['myimage'].pixel_component_ids[0],
+    ...                               RectangularROI(1, 3.5, -0.2, 3.3))
+    >>> dc.new_subset_group(subset_state=subset_state, label='Rectangular selection')  # doctest: +IGNORE_OUTPUT
+
+We can then use the :meth:`~glue.core.data.BaseData.get_selection_definition`
+method to retrieve the selection as an Astropy
+:class:`~regions.RectanglePixelRegion` object::
+
+    >>> dc['myimage'].get_selection_definition(format='astropy-regions')  # doctest: +FLOAT_CMP
+    <RectanglePixelRegion(center=PixCoord(x=2.25, y=1.55), width=2.5, height=3.5, angle=0.0 deg)>
+
+If multiple selections/subsets are present, you can specify which one to
+retrieve either by index::
+
+    >>> dc['myimage'].get_selection_definition(format='astropy-regions',
+    ...                                        subset_id=0)  # doctest: +FLOAT_CMP
+    <RectanglePixelRegion(center=PixCoord(x=2.25, y=1.55), width=2.5, height=3.5, angle=0.0 deg)>
+
+or by name::
+
+    >>> dc['myimage'].get_selection_definition(format='astropy-regions',
+    ...                                        subset_id='Rectangular selection')  # doctest: +FLOAT_CMP
+    <RectanglePixelRegion(center=PixCoord(x=2.25, y=1.55), width=2.5, height=3.5, angle=0.0 deg)>
+
+Note that not all selections in glue can necessarily be represented by Astropy
+regions - for example, if we define a subset based on the flux values in the
+image::
+
+    >>> dc.new_subset_group(subset_state=dc['myimage'].id['data'] > 0.5,
+    ...                     label='Flux-based selection')  # doctest: +IGNORE_OUTPUT
+
+this selection cannot be translated to an Astropy region::
+
+    >>> dc['myimage'].get_selection_definition(format='astropy-regions',
+    ...                                        subset_id='Flux-based selection')
+    Traceback (most recent call last):
+    ...
+    NotImplementedError: Subset states of type InequalitySubsetState are not supported

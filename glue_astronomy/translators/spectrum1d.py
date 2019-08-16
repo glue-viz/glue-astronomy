@@ -26,6 +26,7 @@ class Specutils1DHandler:
     def to_object(self, data_or_subset, attribute=None, statistic='mean'):
         """
         Convert a glue Data object to a Spectrum1D object.
+
         Parameters
         ----------
         data_or_subset : `glue.core.data.Data` or `glue.core.subset.Subset`

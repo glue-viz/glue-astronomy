@@ -7,4 +7,4 @@ except DistributionNotFound:
 
 
 def setup():
-    from glue_astronomy.translators import spectrum1d
+    from glue_astronomy import translators  # noqa
