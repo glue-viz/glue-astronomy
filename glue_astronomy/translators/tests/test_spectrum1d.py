@@ -22,7 +22,6 @@ def test_to_spectrum1d():
     wcs.wcs.ctype = ['VELO-LSR']
     wcs.wcs.set()
 
-    # Set up glue Coordinates object
     coords = WCSCoordinates(wcs=wcs)
 
     data = Data(label='spectrum', coords=coords)
@@ -39,7 +38,7 @@ def test_to_spectrum1d():
                                          attribute=data.id['x'])
 
     assert_quantity_allclose(spec_subset.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
-    assert_quantity_allclose(spec_subset.flux, [3.4, 2.3, -1.1, 0.3] * u.Jy)
+    assert_quantity_allclose(spec_subset.flux, [3.4, 2.3, np.nan, np.nan] * u.Jy)
     assert_equal(spec_subset.mask, [1, 1, 0, 0])
 
 
@@ -50,7 +49,6 @@ def test_to_spectrum1d_unitless():
     wcs.wcs.ctype = ['VELO-LSR']
     wcs.wcs.set()
 
-    # Set up glue Coordinates object
     coords = WCSCoordinates(wcs=wcs)
 
     data = Data(label='spectrum', coords=coords)
@@ -79,7 +77,6 @@ def test_to_spectrum1d_from_3d_cube():
     wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', 'VELO-LSR']
     wcs.wcs.set()
 
-    # Set up glue Coordinates object
     coords = WCSCoordinates(wcs=wcs)
 
     data = Data(label='spectral-cube', coords=coords)
@@ -93,7 +90,6 @@ def test_to_spectrum1d_from_3d_cube():
 
 def test_to_spectrum1d_with_spectral_coordinates():
 
-    # Set up glue Coordinates object
     coords = SpectralCoordinates([1, 4, 10] * u.micron)
 
     data = Data(label='spectrum1d', coords=coords)
@@ -105,6 +101,31 @@ def test_to_spectrum1d_with_spectral_coordinates():
     spec = data.get_object(Spectrum1D, attribute=data.id['x'])
     assert_quantity_allclose(spec.spectral_axis, [1, 4, 10] * u.micron)
     assert_quantity_allclose(spec.flux, [3, 4, 5] * u.Jy)
+
+
+def test_to_spectrum1d_default_attribute():
+
+    coords = SpectralCoordinates([1, 4, 10] * u.micron)
+
+    data = Data(label='spectrum1d', coords=coords)
+
+    with pytest.raises(ValueError) as exc:
+        data.get_object(Spectrum1D)
+    assert exc.value.args[0] == 'Data object has no attributes.'
+
+    data.add_component(Component(np.array([3, 4, 5]), units='Jy'), 'x')
+
+    spec = data.get_object(Spectrum1D)
+    assert_quantity_allclose(spec.flux, [3, 4, 5] * u.Jy)
+
+    data.add_component(Component(np.array([3, 4, 5]), units='Jy'), 'y')
+
+    with pytest.raises(ValueError) as exc:
+        data.get_object(Spectrum1D)
+    assert exc.value.args[0] == ('Data object has more than one attribute, so '
+                                 'you will need to specify which one to use as '
+                                 'the flux for the spectrum using the attribute= '
+                                 'keyword argument.')
 
 
 @pytest.mark.parametrize('mode', ('wcs', 'lookup'))

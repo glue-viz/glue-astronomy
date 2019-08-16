@@ -1,3 +1,5 @@
+import numpy as np
+
 from glue.config import data_translator
 from glue.core import Data, Subset
 from glue.core.coordinates import WCSCoordinates
@@ -21,7 +23,7 @@ class Specutils1DHandler:
         data.meta.update(obj.meta)
         return data
 
-    def to_object(self, data_or_subset, attribute, statistic='mean'):
+    def to_object(self, data_or_subset, attribute=None, statistic='mean'):
         """
         Convert a glue Data object to a Spectrum1D object.
         Parameters
@@ -61,6 +63,16 @@ class Specutils1DHandler:
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
+        elif len(data.main_components) == 0:
+            raise ValueError('Data object has no attributes.')
+        elif attribute is None:
+            if len(data.main_components) == 1:
+                attribute = data.main_components[0]
+            else:
+                raise ValueError("Data object has more than one attribute, so "
+                                 "you will need to specify which one to use as "
+                                 "the flux for the spectrum using the "
+                                 "attribute= keyword argument.")
 
         component = data.get_component(attribute)
 
@@ -76,6 +88,8 @@ class Specutils1DHandler:
                 mask = None
             else:
                 mask = data.get_mask(subset_state=subset_state)
+                values = values.copy()
+                values[~mask] = np.nan
 
         values = values * u.Unit(component.units)
 
