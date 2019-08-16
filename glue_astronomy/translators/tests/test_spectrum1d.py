@@ -158,7 +158,6 @@ def test_from_spectrum1d(mode):
     # Check round-tripping
     spec_new = data.get_object(attribute='flux')
     assert isinstance(spec_new, Spectrum1D)
-    spec_new = data.get_object(attribute=data.id['flux'])
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
 
