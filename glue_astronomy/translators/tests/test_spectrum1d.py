@@ -107,16 +107,22 @@ def test_to_spectrum1d_with_spectral_coordinates():
     assert_quantity_allclose(spec.flux, [3, 4, 5] * u.Jy)
 
 
-def test_from_spectrum1d_with_wcs():
+@pytest.mark.parametrize('mode', ('wcs', 'lookup'))
+def test_from_spectrum1d(mode):
 
-    wcs = WCS(naxis=1)
-    wcs.wcs.ctype = ['VELO-LSR']
-    wcs.wcs.set()
+    if mode == 'wcs':
+        wcs = WCS(naxis=1)
+        wcs.wcs.ctype = ['FREQ']
+        wcs.wcs.set()
+        kwargs = {'wcs': wcs}
+    else:
 
-    spec = Spectrum1D([1, 2, 3, 4] * u.Jy, wcs=wcs)
+        kwargs = {'spectral_axis': [1, 2, 3, 4] * u.Hz}
+
+    spec = Spectrum1D([2, 3, 4, 5] * u.Jy, **kwargs)
 
     data_collection = DataCollection()
-    
+
     data_collection['spectrum'] = spec
 
     data = data_collection['spectrum']
@@ -124,17 +130,14 @@ def test_from_spectrum1d_with_wcs():
     assert isinstance(data, Data)
     assert len(data.main_components) == 1
     assert data.main_components[0].label == 'flux'
-    assert_allclose(data['flux'], [1, 2, 3, 4])
+    assert_allclose(data['flux'], [2, 3, 4, 5])
     component = data.get_component('flux')
     assert component.units == 'Jy'
 
     # Check round-tripping
     spec_new = data.get_object(attribute='flux')
     assert isinstance(spec_new, Spectrum1D)
-    spec_new = data.get_object(attribute=data.id['x'])
-    assert_quantity_allclose(spec_new.spectral_axis, [1, 4, 10] * u.micron)
-    assert_quantity_allclose(spec_new.flux, [3, 4, 5] * u.Jy)
-
-
-# def test_from_spectrum1d_with_lookup_table():
+    spec_new = data.get_object(attribute=data.id['flux'])
+    assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
+    assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
 
