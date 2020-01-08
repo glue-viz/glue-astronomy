@@ -35,7 +35,9 @@ class AstropyRegionsHandler:
             elif isinstance(roi, PolygonalROI):
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
             else:
-                raise NotImplementedError("ROIs of type {0} are not yet supported".format(roi.__class__.__name__))
+                raise NotImplementedError("ROIs of type {0} are not yet supported"
+                                          .format(roi.__class__.__name__))
 
         else:
-            raise NotImplementedError("Subset states of type {0} are not supported".format(subset_state.__class__.__name__))
+            raise NotImplementedError("Subset states of type {0} are not supported"
+                                      .format(subset_state.__class__.__name__))

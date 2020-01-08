@@ -44,7 +44,7 @@ class Specutils1DHandler:
 
         if isinstance(data.coords, WCSCoordinates):
             wcs = data.coords.wcs
-        elif type(data.coords) is Coordinates:
+        elif type(data.coords) is Coordinates or data.coords is None:
             wcs = None
         else:
             raise TypeError('data.coords should be an instance of Coordinates or WCSCoordinates')
