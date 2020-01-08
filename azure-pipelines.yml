@@ -29,11 +29,10 @@ jobs:
     - linux: py37-test-dev
 
     - macos: py36-test
-    - macos: py37-test
-    - macos: py38-test
-    - macos: py37-test-dev
-
-    - windows: py36-test
     - windows: py37-test
+    - macos: py38-test
+    - windows: py37-test-dev
+
+    - linux: py36-docs
+    - macos: py37-docs
     - windows: py38-test
-    - windows: py38-test-dev
