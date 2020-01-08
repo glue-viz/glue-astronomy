@@ -12,6 +12,12 @@ data classes. At this time, the following data classes are supported:
 * :class:`~specutils.Spectrum1D` for spectra (from the `specutils
   <https://specutils.readthedocs.io>`_ package)
 
+* :class:`~spectral_cube.SpectralCube` for spectra (from the `spectral-cube
+  <https://spectral-cube.readthedocs.io>`_ package)
+
+* :class:`~astropy.nddata.CCDData` for spectra (from the `astropy.nddata
+  <https://docs.astropy.org/en/stable/nddata/>`_ sub-package)
+
 Working with these classes is described in `Datasets and subsets`_ below. In
 addition, this plugin defines ways for glue selections to be translated to
 Astropy `regions <https://astropy-regions.readthedocs.io>`_, as described in
