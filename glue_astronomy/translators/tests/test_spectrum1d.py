@@ -67,7 +67,8 @@ def test_to_spectrum1d_invalid():
 
     with pytest.raises(TypeError) as exc:
         data.get_object(Spectrum1D, attribute=data.id['x'])
-    assert exc.value.args[0] == 'data.coords should be an instance of WCSCoordinates or SpectralCoordinates'
+    assert exc.value.args[0] == ('data.coords should be an instance of WCSCoordinates '
+                                 'or SpectralCoordinates')
 
 
 def test_to_spectrum1d_from_3d_cube():
@@ -160,4 +161,3 @@ def test_from_spectrum1d(mode):
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
-

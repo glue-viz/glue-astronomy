@@ -60,7 +60,8 @@ class Specutils1DHandler:
 
         else:
 
-            raise TypeError('data.coords should be an instance of WCSCoordinates or SpectralCoordinates')
+            raise TypeError('data.coords should be an instance of WCSCoordinates '
+                            'or SpectralCoordinates')
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
