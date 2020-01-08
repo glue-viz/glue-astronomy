@@ -12,8 +12,6 @@ from glue.core import Data, DataCollection
 from glue.core.component import Component
 from glue.core.coordinates import WCSCoordinates
 
-from glue_astronomy.spectral_coordinates import SpectralCoordinates
-
 
 @pytest.fixture
 def spectral_cube_wcs():
