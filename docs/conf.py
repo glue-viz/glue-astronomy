@@ -37,7 +37,8 @@ intersphinx_mapping = {
     'astropy': ('http://docs.astropy.org/en/stable/', None),
     'glue-astronomy': ('http://docs.glueviz.org/en/latest/', None),
     'specutils': ('https://specutils.readthedocs.io/en/latest/', None),
-    'regions': ('https://astropy-regions.readthedocs.io/en/latest/', None)
+    'regions': ('https://astropy-regions.readthedocs.io/en/latest/', None),
+    'spectral-cube': ('https://spectral-cube.readthedocs.io/en/latest/', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -127,6 +128,7 @@ texinfo_documents = [
 todo_include_todos = True
 autoclass_content = 'both'
 
+nitpicky = True
 nitpick_ignore = [('py:class', 'object'), ('py:class', 'str'),
                   ('py:class', 'list'), ('py:obj', 'numpy array'),
                   ('py:obj', 'integer'), ('py:obj', 'Callable'),
@@ -166,11 +168,6 @@ nitpick_ignore = [('py:class', 'object'), ('py:class', 'str'),
                   ('py:class', 'glue.viewers.image.state.BaseImageLayerState'),
                   ('py:class', 'glue.viewers.common.qt.data_viewer_with_state.DataViewerWithState')
               ]
-
-# coax Sphinx into treating descriptors as attributes
-# see https://bitbucket.org/birkenfeld/sphinx/issue/1254/#comment-7587063
-from glue.utils.qt.widget_properties import WidgetProperty
-WidgetProperty.__get__ = lambda self, *args, **kwargs: self
 
 viewcode_follow_imported_members = False
 
