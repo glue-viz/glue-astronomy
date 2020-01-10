@@ -16,6 +16,7 @@ jobs:
     libraries:
       apt:
         - libxkbcommon-x11-0
+        - libgfortran3
 
     envs:
 
