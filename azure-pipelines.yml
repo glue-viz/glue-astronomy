@@ -33,6 +33,6 @@ jobs:
     - macos: py38-test
     - windows: py37-test-dev
 
-    - linux: py36-docs-casa
+    - linux: py36-docs
     - macos: py37-docs
     - windows: py38-test
