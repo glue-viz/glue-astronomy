@@ -23,16 +23,16 @@ jobs:
       libraries: {}
       coverage: 'false'
 
-    - linux: py36-test
+    - linux: py36-test-casa
     - linux: py37-test
     - linux: py38-test
     - linux: py37-test-dev
 
-    - macos: py36-test
+    - macos: py36-test-casa
     - windows: py37-test
     - macos: py38-test
     - windows: py37-test-dev
 
-    - linux: py36-docs
+    - linux: py36-docs-casa
     - macos: py37-docs
     - windows: py38-test
