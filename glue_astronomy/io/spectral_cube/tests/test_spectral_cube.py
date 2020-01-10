@@ -25,5 +25,5 @@ def test_qglue():
     cube = SpectralCube.read(os.path.join(DATA, 'cube_3d.fits'))
     data = parse_data(cube, 'x')[0]
     assert data.label == 'x'
-    data['STOKES I']
+    data['flux']
     assert data.shape == (2, 3, 4)
