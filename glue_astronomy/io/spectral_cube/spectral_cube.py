@@ -45,7 +45,7 @@ def spectral_cube_to_data(cube, label=None):
     return result
 
 
-@data_factory(label='FITS Spectral Cube', identifier=is_spectral_cube)
+@data_factory(label='Spectral Cube', identifier=is_spectral_cube)
 def read_spectral_cube(filename, **kwargs):
     """
     Read in a FITS spectral cube. If multiple Stokes components are present,
