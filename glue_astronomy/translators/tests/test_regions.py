@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
-from regions import RectanglePixelRegion
+from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion
 
 from glue.core import Data, DataCollection
-from glue.core.roi import RectangularROI
+from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI
 from glue.core.subset import RoiSubsetState
 
 
@@ -13,6 +13,7 @@ class TestAstropyRegions:
 
     def setup_method(self, method):
         self.data = Data(flux=np.ones((128, 128)))
+        print (self.data.pixel_component_ids)
         self.dc = DataCollection([self.data])
 
     def test_rectangular_roi(self):
@@ -31,6 +32,56 @@ class TestAstropyRegions:
         assert_allclose(reg.center.y, 1.55)
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
+
+    def test_polygonal_roi(self):
+
+        xv = [1.3,2,3,1.5,0.5]
+        yv = [10,20.20,30,25,17.17]
+
+        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
+                                      self.data.pixel_component_ids[0],
+                                      PolygonalROI(xv, yv))
+
+        self.dc.new_subset_group(subset_state=subset_state, label='polygon')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, PolygonPixelRegion)
+
+        assert_array_equal(reg.vertices.x, xv)
+        assert_array_equal(reg.vertices.y, yv)
+
+    def test_circular_roi(self):
+
+        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
+                                      self.data.pixel_component_ids[0],
+                                      CircularROI(1, 3.5, 0.75))
+
+        self.dc.new_subset_group(subset_state=subset_state, label='circular')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, CirclePixelRegion)
+
+        assert_equal(reg.center.x, 1)
+        assert_equal(reg.center.y, 3.5)
+        assert_equal(reg.radius, 0.75)
+
+    def test_point_roi(self):
+
+        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
+                                      self.data.pixel_component_ids[0],
+                                      PointROI(2.64, 5.4))
+
+        self.dc.new_subset_group(subset_state=subset_state, label='point')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, PointPixelRegion)
+
+        assert_equal(reg.center.x, 2.64)
+        assert_equal(reg.center.y, 5.4)
+
 
     def test_subset_id(self):
 

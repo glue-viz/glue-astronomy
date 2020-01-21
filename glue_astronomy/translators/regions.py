@@ -11,6 +11,8 @@ class AstropyRegionsHandler:
     def to_object(self, subset):
 
         data = subset.data
+        x_pix_att = data.pixel_component_ids[1]
+        y_pix_att  = data.pixel_component_ids[0]
 
         if data.ndim != 2:
             raise NotImplementedError("Can only handle 2-d datasets at this time")
@@ -19,10 +21,10 @@ class AstropyRegionsHandler:
 
         if isinstance(subset_state, RoiSubsetState):
 
-            if subset_state.xatt != data.pixel_component_ids[1]:
+            if subset_state.xatt != x_pix_att:
                 raise ValueError('subset state xatt should be x pixel coordinate')
 
-            if subset_state.yatt != data.pixel_component_ids[0]:
+            if subset_state.yatt != y_pix_att:
                 raise ValueError('subset state yatt should be y pixel coordinate')
 
             roi = subset_state.roi
@@ -35,9 +37,9 @@ class AstropyRegionsHandler:
             elif isinstance(roi, PolygonalROI):
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
             elif isinstance(roi, CircularROI):
-                return CirclePixelRegion(PixCoord(roi.get_center()), roi.get_radius())
+                return CirclePixelRegion(PixCoord(*roi.get_center()), roi.get_radius())
             elif isinstance(roi, PointROI):
-                return PointPixelRegion(PixCoord(roi.get_center()))
+                return PointPixelRegion(PixCoord(*roi.center()))
             else:
                 raise NotImplementedError("ROIs of type {0} are not yet supported"
                                           .format(roi.__class__.__name__))
