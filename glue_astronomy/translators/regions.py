@@ -1,6 +1,7 @@
 from glue.config import subset_state_translator
 from glue.core.subset import RoiSubsetState, RangeSubsetState
 from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, RangeROI
+from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, PixCoord
 
