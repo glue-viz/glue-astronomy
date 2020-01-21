@@ -1,8 +1,8 @@
 from glue.config import subset_state_translator
 from glue.core.subset import RoiSubsetState
-from glue.core.roi import RectangularROI, PolygonalROI
+from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI
 
-from regions import RectanglePixelRegion, PolygonPixelRegion, PixCoord
+from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, PixCoord
 
 
 @subset_state_translator('astropy-regions')
@@ -34,6 +34,10 @@ class AstropyRegionsHandler:
                 return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
             elif isinstance(roi, PolygonalROI):
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
+            elif isinstance(roi, CircularROI):
+                return CirclePixelRegion(PixCoord(roi.get_center()), roi.get_radius())
+            elif isinstance(roi, PointROI):
+                return PointPixelRegion(PixCoord(roi.get_center()))
             else:
                 raise NotImplementedError("ROIs of type {0} are not yet supported"
                                           .format(roi.__class__.__name__))
