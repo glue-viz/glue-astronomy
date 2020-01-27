@@ -7,6 +7,7 @@ from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
 from glue.core import Data, DataCollection
 from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, XRangeROI, YRangeROI
 from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState, XorState, MultiOrState
+from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 
 class TestAstropyRegions:
@@ -151,6 +152,16 @@ class TestAstropyRegions:
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(format='astropy-regions')
         assert exc.value.args[0] == 'range subset state att should be either x or y pixel coordinate'
+
+    def test_pixel_subset(self):
+        subset_state = PixelSubsetState(self.data, [slice(15,16,None), slice(130,131,None)]) #(130,15)
+        self.dc.new_subset_group(subset_state=subset_state, label='pixel_subset')
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, PointPixelRegion)
+        assert_equal(reg.center.x, 130)
+        assert_equal(reg.center.y, 15)
+
 
     def test_and_region(self):
         subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],

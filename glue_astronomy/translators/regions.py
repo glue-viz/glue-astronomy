@@ -1,6 +1,7 @@
 from glue.config import subset_state_translator
 from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState, XorState, MultiOrState, Subset
 from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, RangeROI
+from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, PixCoord
 
@@ -63,7 +64,7 @@ class AstropyRegionsHandler:
                 raise NotImplementedError("ROIs of type {0} are not yet supported"
                                           .format(roi.__class__.__name__))
 
-        elif isinstance(subset_state, RangeSubsetState):
+        elif isinstance (subset_state, RangeSubsetState):
             if subset_state.att == x_pix_att:
                 return range_to_rect('x', subset_state.lo, subset_state.hi)
             elif subset_state.att == y_pix_att:
@@ -71,28 +72,31 @@ class AstropyRegionsHandler:
             else:
                 raise ValueError('range subset state att should be either x or y pixel coordinate')
 
-        elif isinstance (subset_state, AndState):
+        elif isinstance(subset_state, PixelSubsetState):
+            return PointPixelRegion(PixCoord(*subset_state.get_xy(data,1,0)))
+
+        elif isinstance(subset_state, AndState):
             temp_sub1 = Subset(data = data)
             temp_sub1.subset_state = subset_state.state1
             temp_sub2 = Subset(data = data)
             temp_sub2.subset_state = subset_state.state2
             return self.to_object(temp_sub1) & self.to_object(temp_sub2)
         
-        elif isinstance (subset_state, OrState):
+        elif isinstance(subset_state, OrState):
             temp_sub1 = Subset(data = data)
             temp_sub1.subset_state = subset_state.state1
             temp_sub2 = Subset(data = data)
             temp_sub2.subset_state = subset_state.state2
             return self.to_object(temp_sub1) | self.to_object(temp_sub2)
         
-        elif isinstance (subset_state, XorState):
+        elif isinstance(subset_state, XorState):
             temp_sub1 = Subset(data = data)
             temp_sub1.subset_state = subset_state.state1
             temp_sub2 = Subset(data = data)
             temp_sub2.subset_state = subset_state.state2
             return self.to_object(temp_sub1) ^ self.to_object(temp_sub2)
 
-        elif isinstance (subset_state, MultiOrState):
+        elif isinstance(subset_state, MultiOrState):
             temp_sub = Subset(data=data)
             temp_sub.subset_state = subset_state.states[0]
             region = self.to_object(temp_sub)
