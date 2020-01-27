@@ -61,6 +61,15 @@ class AstropyRegionsHandler:
             elif isinstance(roi, RangeROI):
                 return range_to_rect(roi.ori, roi.min, roi.max)
 
+            elif isinstanc(roi, AbstractMplRoi):
+                temp_sub = Subset(data)
+                temp_sub.subset_state = RoiSubsetState(y_pix_att,x_pix_att, roi.roi())
+                try:
+                    return self.to_object(temp_sub)
+                except NotImplementedError:
+                    raise NotImplementedError("ROIs of type {0} are not yet supported"
+                                              .format(roi.__class__.__name__))
+
             else:
                 raise NotImplementedError("ROIs of type {0} are not yet supported"
                                           .format(roi.__class__.__name__))
