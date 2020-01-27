@@ -28,6 +28,6 @@ In addition, the loader provided here is able to read in spectral cubes in
 other formats supported by spectral-cube, such as for example the CASA
 ``.image`` format.
 
-To make use of this data laoder, click on **Import Data** in glue and
+To make use of this data loader, click on **Import Data** in glue and
 select **Spectral Cube** for the type in the window that pops up, then
 select the file (or directory for ``.image`` datasets) you want to load.
