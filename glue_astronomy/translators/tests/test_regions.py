@@ -6,7 +6,8 @@ from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
 
 from glue.core import Data, DataCollection
 from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, XRangeROI, YRangeROI
-from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState, XorState, MultiOrState
+from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState,\
+                             AndState, XorState, MultiOrState, MultiRangeSubsetState
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 
@@ -144,6 +145,7 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 256)
         assert_allclose(reg.height, 2.2)
 
+
     def test_invalid_range_subset(self):
         subset_state = RangeSubsetState(0,1, self.data.main_components[0])
 
@@ -152,6 +154,69 @@ class TestAstropyRegions:
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(format='astropy-regions')
         assert exc.value.args[0] == 'range subset state att should be either x or y pixel coordinate'
+
+    def test_horiz_multirange(self):
+        subset_state = MultiRangeSubsetState([(26,27.5),(28,29)],self.data.pixel_component_ids[1])
+
+        self.dc.new_subset_group(subset_state=subset_state, label='horizmultirange')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, CompoundPixelRegion)
+
+        rect1 = reg.region1
+        assert isinstance(rect1, RectanglePixelRegion)
+        assert_allclose(rect1.center.x, 26.75)
+        assert_allclose(rect1.center.y, 64)
+        assert_allclose(rect1.width, 1.5)
+        assert_allclose(rect1.height, 128)
+
+        rect2 = reg.region2
+        assert isinstance(rect2, RectanglePixelRegion)
+        assert_allclose(rect2.center.x, 28.5)
+        assert_allclose(rect2.center.y, 64)
+        assert_allclose(rect2.width, 1)
+        assert_allclose(rect2.height, 128)
+
+
+    def test_vert_multirange(self):
+        subset_state = MultiRangeSubsetState([(30,33.5),(21,27)],self.data.pixel_component_ids[0])
+
+        self.dc.new_subset_group(subset_state=subset_state, label='horizmultirange')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, CompoundPixelRegion)
+
+        rect1 = reg.region1
+        assert isinstance(rect1, RectanglePixelRegion)
+        assert_allclose(rect1.center.x, 128)
+        assert_allclose(rect1.center.y, 31.75)
+        assert_allclose(rect1.width, 256)
+        assert_allclose(rect1.height, 3.5)
+
+        rect2 = reg.region2
+        assert isinstance(rect2, RectanglePixelRegion)
+        assert_allclose(rect2.center.x, 128)
+        assert_allclose(rect2.center.y, 24)
+        assert_allclose(rect2.width, 256)
+        assert_allclose(rect2.height, 6)
+
+    def test_invalid_multiranges(self):
+        wrong_att = MultiRangeSubsetState([(30,33.5),(21,27)],self.data.main_components[0])
+        empty = MultiRangeSubsetState([], self.data.pixel_component_ids[0])
+        self.dc.new_subset_group(subset_state=wrong_att, label='wrong_att')
+        self.dc.new_subset_group(subset_state=empty, label='empty')
+
+        with pytest.raises(ValueError) as exc:
+            self.data.get_selection_definition(subset_id='wrong_att', format='astropy-regions')
+        assert exc.value.args[0] == 'multirange subset state att should be either x or y pixel coordinate'
+
+        with pytest.raises(ValueError) as exc:
+            self.data.get_selection_definition(subset_id='empty', format='astropy-regions')
+        assert exc.value.args[0] == 'multirange subset state should contain at least one range'
+
+
 
     def test_pixel_subset(self):
         subset_state = PixelSubsetState(self.data, [slice(15,16,None), slice(130,131,None)]) #(130,15)
