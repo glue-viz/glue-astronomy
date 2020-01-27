@@ -1,7 +1,6 @@
 from glue.config import subset_state_translator
-from glue.core.subset import RoiSubsetState, RangeSubsetState
+from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState, XorState, MultiOrState, Subset
 from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, RangeROI
-from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, PixCoord
 
@@ -71,6 +70,37 @@ class AstropyRegionsHandler:
                 return range_to_rect('y', subset_state.lo, subset_state.hi)
             else:
                 raise ValueError('range subset state att should be either x or y pixel coordinate')
+
+        elif isinstance (subset_state, AndState):
+            temp_sub1 = Subset(data = data)
+            temp_sub1.subset_state = subset_state.state1
+            temp_sub2 = Subset(data = data)
+            temp_sub2.subset_state = subset_state.state2
+            return self.to_object(temp_sub1) & self.to_object(temp_sub2)
+        
+        elif isinstance (subset_state, OrState):
+            temp_sub1 = Subset(data = data)
+            temp_sub1.subset_state = subset_state.state1
+            temp_sub2 = Subset(data = data)
+            temp_sub2.subset_state = subset_state.state2
+            return self.to_object(temp_sub1) | self.to_object(temp_sub2)
+        
+        elif isinstance (subset_state, XorState):
+            temp_sub1 = Subset(data = data)
+            temp_sub1.subset_state = subset_state.state1
+            temp_sub2 = Subset(data = data)
+            temp_sub2.subset_state = subset_state.state2
+            return self.to_object(temp_sub1) ^ self.to_object(temp_sub2)
+
+        elif isinstance (subset_state, MultiOrState):
+            temp_sub = Subset(data=data)
+            temp_sub.subset_state = subset_state.states[0]
+            region = self.to_object(temp_sub)
+            for state in subset_state.states[1:]:
+                temp_sub.subset_state = state
+                region = region | self.to_object(temp_sub)
+            return region
+
 
         else:
             raise NotImplementedError("Subset states of type {0} are not supported"

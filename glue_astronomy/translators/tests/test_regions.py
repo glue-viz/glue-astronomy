@@ -2,11 +2,11 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
-from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion
+from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, CompoundPixelRegion, PixCoord
 
 from glue.core import Data, DataCollection
 from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, XRangeROI, YRangeROI
-from glue.core.subset import RoiSubsetState, RangeSubsetState
+from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState, XorState, MultiOrState
 
 
 class TestAstropyRegions:
@@ -152,6 +152,118 @@ class TestAstropyRegions:
             self.data.get_selection_definition(format='astropy-regions')
         assert exc.value.args[0] == 'range subset state att should be either x or y pixel coordinate'
 
+    def test_and_region(self):
+        subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.pixel_component_ids[0],
+                                       RectangularROI(1, 5, 2, 6))
+        subset_state2 = RoiSubsetState(self.data.pixel_component_ids[1],
+                                      self.data.pixel_component_ids[0],
+                                      CircularROI(4.75, 5.75, 0.5))
+        and_subset_state = AndState(subset_state1, subset_state2)
+        self.dc.new_subset_group(subset_state=and_subset_state, label='andstate')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, CompoundPixelRegion)
+        assert isinstance(reg.region1, RectanglePixelRegion)
+        assert isinstance(reg.region2, CirclePixelRegion)
+
+        assert (reg.contains(PixCoord(4.5,5.5)))
+        assert (not reg.contains(PixCoord(3, 4)))
+        assert (not reg.contains(PixCoord(5.1, 6.1)))
+        assert (not reg.contains(PixCoord(11, 12)))
+
+    def test_or_region(self):
+        subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.pixel_component_ids[0],
+                                       RectangularROI(1, 5, 2, 6))
+        subset_state2 = RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.pixel_component_ids[0],
+                                       CircularROI(4.75, 5.75, 0.5))
+        or_subset_state = OrState(subset_state1, subset_state2)
+        self.dc.new_subset_group(subset_state=or_subset_state, label='orstate')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, CompoundPixelRegion)
+        assert isinstance(reg.region1, RectanglePixelRegion)
+        assert isinstance(reg.region2, CirclePixelRegion)
+
+        assert (reg.contains(PixCoord(4.5, 5.5)))
+        assert (reg.contains(PixCoord(3, 4)))
+        assert (reg.contains(PixCoord(5.1, 6.1)))
+        assert (not reg.contains(PixCoord(11, 12)))
+
+    def test_xor_region(self):
+        subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.pixel_component_ids[0],
+                                       RectangularROI(1, 5, 2, 6))
+        subset_state2 = RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.pixel_component_ids[0],
+                                       CircularROI(4.75, 5.75, 0.5))
+        xor_subset_state = XorState(subset_state1, subset_state2)
+        self.dc.new_subset_group(subset_state=xor_subset_state, label='xorstate')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, CompoundPixelRegion)
+        assert isinstance(reg.region1, RectanglePixelRegion)
+        assert isinstance(reg.region2, CirclePixelRegion)
+
+        assert (not reg.contains(PixCoord(4.5, 5.5)))
+        assert (reg.contains(PixCoord(3, 4)))
+        assert (reg.contains(PixCoord(5.1, 6.1)))
+        assert (not reg.contains(PixCoord(11, 12)))
+
+    def test_multior_region(self):
+        rects = [(1,2,3,4),(1.5,2.5,3.5,4.5),(2,3,4,5)]
+        states = [RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.pixel_component_ids[0],
+                                       RectangularROI(*rect)) for rect in rects]
+
+        multior_subset_state = MultiOrState(states)
+        self.dc.new_subset_group(subset_state=multior_subset_state, label='multiorstate')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, CompoundPixelRegion)
+        assert isinstance(reg.region1, CompoundPixelRegion)
+        assert isinstance(reg.region2, RectanglePixelRegion)
+        assert isinstance(reg.region1.region1, RectanglePixelRegion)
+        assert isinstance(reg.region1.region2, RectanglePixelRegion)
+
+        assert (reg.contains(PixCoord(1.25, 3.25)))
+        assert (reg.contains(PixCoord(1.75, 3.75)))
+        assert (reg.contains(PixCoord(2.25, 3.75)))
+        assert (reg.contains(PixCoord(2.25, 4.25)))
+        assert (reg.contains(PixCoord(2.75, 4.75)))
+        assert (not reg.contains(PixCoord(5, 7)))
+
+
+    def test_invalid_combos(self):
+        good_subset = RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.pixel_component_ids[0],
+                                       RectangularROI(1, 5, 2, 6))
+        bad_subset = RoiSubsetState(self.data.pixel_component_ids[1],
+                                       self.data.main_components[0],
+                                       CircularROI(4.75, 5.75, 0.5))
+        and_sub = AndState(good_subset, bad_subset)
+        or_sub = OrState(good_subset, bad_subset)
+        xor_sub = XorState(good_subset, bad_subset)
+        multior = MultiOrState([good_subset, bad_subset])
+        self.dc.new_subset_group(subset_state=and_sub, label='and')
+        self.dc.new_subset_group(subset_state=or_sub, label='or')
+        self.dc.new_subset_group(subset_state=xor_sub, label='xor')
+        self.dc.new_subset_group(subset_state=multior, label='multior')
+
+        with pytest.raises(ValueError):
+            self.data.get_selection_definition(label='and', format='astropy-regions')
+        with pytest.raises(ValueError):
+            self.data.get_selection_definition(label='or', format='astropy-regions')
+        with pytest.raises(ValueError):
+            self.data.get_selection_definition(label='xor', format='astropy-regions')
+        with pytest.raises(ValueError):
+            self.data.get_selection_definition(label='multior', format='astropy-regions')
 
     def test_subset_id(self):
 
