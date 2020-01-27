@@ -153,7 +153,7 @@ class TestAstropyRegions:
 
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(format='astropy-regions')
-        assert exc.value.args[0] == 'range subset state att should be either x or y pixel coordinate'
+        assert exc.value.args[0] == 'Range subset state att should be either x or y pixel coordinate'
 
     def test_horiz_multirange(self):
         subset_state = MultiRangeSubsetState([(26,27.5),(28,29)],self.data.pixel_component_ids[1])
@@ -163,6 +163,9 @@ class TestAstropyRegions:
         reg = self.data.get_selection_definition(format='astropy-regions')
 
         assert isinstance(reg, CompoundPixelRegion)
+        assert reg.contains(PixCoord(26.4,54.6))
+        assert reg.contains(PixCoord(28.26,75.5))
+        assert not reg.contains(PixCoord(27.75,34))
 
         rect1 = reg.region1
         assert isinstance(rect1, RectanglePixelRegion)
@@ -187,6 +190,9 @@ class TestAstropyRegions:
         reg = self.data.get_selection_definition(format='astropy-regions')
 
         assert isinstance(reg, CompoundPixelRegion)
+        assert reg.contains(PixCoord(145,31.2))
+        assert reg.contains(PixCoord(32,24.6))
+        assert not reg.contains(PixCoord(128,29.2))
 
         rect1 = reg.region1
         assert isinstance(rect1, RectanglePixelRegion)
@@ -210,11 +216,11 @@ class TestAstropyRegions:
 
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(subset_id='wrong_att', format='astropy-regions')
-        assert exc.value.args[0] == 'multirange subset state att should be either x or y pixel coordinate'
+        assert exc.value.args[0] == 'Multirange subset state att should be either x or y pixel coordinate'
 
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(subset_id='empty', format='astropy-regions')
-        assert exc.value.args[0] == 'multirange subset state should contain at least one range'
+        assert exc.value.args[0] == 'Multirange subset state should contain at least one range'
 
 
 
@@ -244,10 +250,10 @@ class TestAstropyRegions:
         assert isinstance(reg.region1, RectanglePixelRegion)
         assert isinstance(reg.region2, CirclePixelRegion)
 
-        assert (reg.contains(PixCoord(4.5,5.5)))
-        assert (not reg.contains(PixCoord(3, 4)))
-        assert (not reg.contains(PixCoord(5.1, 6.1)))
-        assert (not reg.contains(PixCoord(11, 12)))
+        assert reg.contains(PixCoord(4.5,5.5))
+        assert not reg.contains(PixCoord(3, 4))
+        assert not reg.contains(PixCoord(5.1, 6.1))
+        assert not reg.contains(PixCoord(11, 12))
 
     def test_or_region(self):
         subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],
@@ -265,10 +271,10 @@ class TestAstropyRegions:
         assert isinstance(reg.region1, RectanglePixelRegion)
         assert isinstance(reg.region2, CirclePixelRegion)
 
-        assert (reg.contains(PixCoord(4.5, 5.5)))
-        assert (reg.contains(PixCoord(3, 4)))
-        assert (reg.contains(PixCoord(5.1, 6.1)))
-        assert (not reg.contains(PixCoord(11, 12)))
+        assert reg.contains(PixCoord(4.5, 5.5))
+        assert reg.contains(PixCoord(3, 4))
+        assert reg.contains(PixCoord(5.1, 6.1))
+        assert not reg.contains(PixCoord(11, 12))
 
     def test_xor_region(self):
         subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],
@@ -286,10 +292,10 @@ class TestAstropyRegions:
         assert isinstance(reg.region1, RectanglePixelRegion)
         assert isinstance(reg.region2, CirclePixelRegion)
 
-        assert (not reg.contains(PixCoord(4.5, 5.5)))
-        assert (reg.contains(PixCoord(3, 4)))
-        assert (reg.contains(PixCoord(5.1, 6.1)))
-        assert (not reg.contains(PixCoord(11, 12)))
+        assert not reg.contains(PixCoord(4.5, 5.5))
+        assert reg.contains(PixCoord(3, 4))
+        assert reg.contains(PixCoord(5.1, 6.1))
+        assert not reg.contains(PixCoord(11, 12))
 
     def test_multior_region(self):
         rects = [(1,2,3,4),(1.5,2.5,3.5,4.5),(2,3,4,5)]
@@ -308,12 +314,12 @@ class TestAstropyRegions:
         assert isinstance(reg.region1.region1, RectanglePixelRegion)
         assert isinstance(reg.region1.region2, RectanglePixelRegion)
 
-        assert (reg.contains(PixCoord(1.25, 3.25)))
-        assert (reg.contains(PixCoord(1.75, 3.75)))
-        assert (reg.contains(PixCoord(2.25, 3.75)))
-        assert (reg.contains(PixCoord(2.25, 4.25)))
-        assert (reg.contains(PixCoord(2.75, 4.75)))
-        assert (not reg.contains(PixCoord(5, 7)))
+        assert reg.contains(PixCoord(1.25, 3.25))
+        assert reg.contains(PixCoord(1.75, 3.75))
+        assert reg.contains(PixCoord(2.25, 3.75))
+        assert reg.contains(PixCoord(2.25, 4.25))
+        assert reg.contains(PixCoord(2.75, 4.75))
+        assert not reg.contains(PixCoord(5, 7))
 
 
     def test_invalid_combos(self):

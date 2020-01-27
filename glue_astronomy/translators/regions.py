@@ -40,10 +40,10 @@ class AstropyRegionsHandler:
         if isinstance(subset_state, RoiSubsetState):
 
             if subset_state.xatt != x_pix_att:
-                raise ValueError('subset state xatt should be x pixel coordinate')
+                raise ValueError('Subset state xatt should be x pixel coordinate')
 
             if subset_state.yatt != y_pix_att:
-                raise ValueError('subset state yatt should be y pixel coordinate')
+                raise ValueError('Subset state yatt should be y pixel coordinate')
 
             roi = subset_state.roi
             if isinstance(roi, RectangularROI):
@@ -71,7 +71,7 @@ class AstropyRegionsHandler:
             elif subset_state.att == y_pix_att:
                 return range_to_rect('y', subset_state.lo, subset_state.hi)
             else:
-                raise ValueError('range subset state att should be either x or y pixel coordinate')
+                raise ValueError('Range subset state att should be either x or y pixel coordinate')
 
         elif isinstance (subset_state, MultiRangeSubsetState):
             if subset_state.att == x_pix_att:
@@ -79,9 +79,9 @@ class AstropyRegionsHandler:
             elif subset_state.att == y_pix_att:
                 ori = 'y'
             else:
-                raise ValueError('multirange subset state att should be either x or y pixel coordinate')
+                raise ValueError('Multirange subset state att should be either x or y pixel coordinate')
             if len(subset_state.pairs) == 0:
-                raise ValueError('multirange subset state should contain at least one range')
+                raise ValueError('Multirange subset state should contain at least one range')
             region = range_to_rect(ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
             for pair in subset_state.pairs[1:]:
                 region = region | range_to_rect(ori, pair[0], pair[1])
