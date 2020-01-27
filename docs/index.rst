@@ -12,3 +12,4 @@ User guide
    :maxdepth: 1
 
    translators.rst
+   data_loaders.rst
