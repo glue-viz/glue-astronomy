@@ -12,7 +12,7 @@ from glue.core.subset import RoiSubsetState, RangeSubsetState
 class TestAstropyRegions:
 
     def setup_method(self, method):
-        self.data = Data(flux=np.ones((128, 128)))
+        self.data = Data(flux=np.ones((128, 256)))
         self.dc = DataCollection([self.data])
 
     def test_rectangular_roi(self):
@@ -110,9 +110,9 @@ class TestAstropyRegions:
 
         assert isinstance(reg, RectanglePixelRegion)
 
-        assert_allclose(reg.center.x, 64)
+        assert_allclose(reg.center.x, 128)
         assert_allclose(reg.center.y, 16.1)
-        assert_allclose(reg.width, 128)
+        assert_allclose(reg.width, 256)
         assert_allclose(reg.height, 12.2)
 
     def test_horiz_range_subset(self):
@@ -138,9 +138,9 @@ class TestAstropyRegions:
 
         assert isinstance(reg, RectanglePixelRegion)
 
-        assert_allclose(reg.center.x, 64)
+        assert_allclose(reg.center.x, 128)
         assert_allclose(reg.center.y, 106.6)
-        assert_allclose(reg.width, 128)
+        assert_allclose(reg.width, 256)
         assert_allclose(reg.height, 2.2)
 
     def test_invalid_range_subset(self):

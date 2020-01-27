@@ -22,12 +22,12 @@ class AstropyRegionsHandler:
         def range_to_rect(ori, low, high):
             if ori == 'x':
                 ymin = 0
-                ymax = data.shape[1]
+                ymax = data.shape[0]
                 xmin = low
                 xmax = high
             else:
                 xmin = 0
-                xmax = data.shape[0]
+                xmax = data.shape[1]
                 ymin = low
                 ymax = high
             xcen = 0.5 * (xmin + xmax)
