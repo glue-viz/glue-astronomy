@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, CompoundPixelRegion, PixCoord
 
 from glue.core import Data, DataCollection
-from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, XRangeROI, YRangeROI
+from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, XRangeROI, YRangeROI, AbstractMplRoi
 from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState,\
                              AndState, XorState, MultiOrState, MultiRangeSubsetState
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
@@ -116,6 +116,23 @@ class TestAstropyRegions:
         assert_allclose(reg.center.y, 16.1)
         assert_allclose(reg.width, 256)
         assert_allclose(reg.height, 12.2)
+
+    def test_mpl_roi(self):
+        rect_roi = RectangularROI(1, 3.5, -0.2, 3.3)
+        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
+                                      self.data.pixel_component_ids[0],
+                                      AbstractMplRoi(None, rect_roi))
+        self.dc.new_subset_group(subset_state=subset_state, label='mpl_rectangular')
+
+        reg = self.data.get_selection_definition(format='astropy-regions')
+
+        assert isinstance(reg, RectanglePixelRegion)
+
+        assert_allclose(reg.center.x, 2.25)
+        assert_allclose(reg.center.y, 1.55)
+        assert_allclose(reg.width, 2.5)
+        assert_allclose(reg.height, 3.5)
+
 
     def test_horiz_range_subset(self):
         subset_state = RangeSubsetState(26,27.5,self.data.pixel_component_ids[1])

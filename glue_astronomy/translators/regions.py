@@ -1,7 +1,7 @@
 from glue.config import subset_state_translator
 from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState,\
                              XorState, MultiOrState, Subset, MultiRangeSubsetState
-from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, RangeROI
+from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, RangeROI, AbstractMplRoi
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, PixCoord
@@ -61,9 +61,9 @@ class AstropyRegionsHandler:
             elif isinstance(roi, RangeROI):
                 return range_to_rect(roi.ori, roi.min, roi.max)
 
-            elif isinstanc(roi, AbstractMplRoi):
+            elif isinstance(roi, AbstractMplRoi):
                 temp_sub = Subset(data)
-                temp_sub.subset_state = RoiSubsetState(y_pix_att,x_pix_att, roi.roi())
+                temp_sub.subset_state = RoiSubsetState(x_pix_att,y_pix_att, roi.roi())
                 try:
                     return self.to_object(temp_sub)
                 except NotImplementedError:
