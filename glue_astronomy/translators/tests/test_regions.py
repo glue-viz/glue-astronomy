@@ -2,12 +2,16 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
-from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, CompoundPixelRegion, PixCoord
+from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,\
+                    PointPixelRegion, CompoundPixelRegion, PixCoord
 
 from glue.core import Data, DataCollection
-from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, XRangeROI, YRangeROI, AbstractMplRoi
+from glue.core.roi import RectangularROI, PolygonalROI, CircularROI,\
+                          PointROI, XRangeROI, YRangeROI, AbstractMplRoi
+
 from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState,\
                              AndState, XorState, MultiOrState, MultiRangeSubsetState
+
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 
@@ -36,8 +40,8 @@ class TestAstropyRegions:
 
     def test_polygonal_roi(self):
 
-        xv = [1.3,2,3,1.5,0.5]
-        yv = [10,20.20,30,25,17.17]
+        xv = [1.3, 2, 3, 1.5, 0.5]
+        yv = [10, 20.20, 30, 25, 17.17]
 
         subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
                                       self.data.pixel_component_ids[0],
@@ -133,9 +137,8 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
 
-
     def test_horiz_range_subset(self):
-        subset_state = RangeSubsetState(26,27.5,self.data.pixel_component_ids[1])
+        subset_state = RangeSubsetState(26, 27.5, self.data.pixel_component_ids[1])
 
         self.dc.new_subset_group(subset_state=subset_state, label='horizrange')
 
@@ -149,7 +152,7 @@ class TestAstropyRegions:
         assert_allclose(reg.height, 128)
 
     def test_vert_range_subset(self):
-        subset_state = RangeSubsetState(105.5,107.7,self.data.pixel_component_ids[0])
+        subset_state = RangeSubsetState(105.5, 107.7, self.data.pixel_component_ids[0])
 
         self.dc.new_subset_group(subset_state=subset_state, label='vertrange')
 
@@ -162,27 +165,28 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 256)
         assert_allclose(reg.height, 2.2)
 
-
     def test_invalid_range_subset(self):
-        subset_state = RangeSubsetState(0,1, self.data.main_components[0])
+        subset_state = RangeSubsetState(0, 1, self.data.main_components[0])
 
         self.dc.new_subset_group(subset_state=subset_state, label='invalidrange')
 
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(format='astropy-regions')
-        assert exc.value.args[0] == 'Range subset state att should be either x or y pixel coordinate'
+        expect_message = 'Range subset state att should be either x or y pixel coordinate'
+        assert exc.value.args[0] == expect_message
 
     def test_horiz_multirange(self):
-        subset_state = MultiRangeSubsetState([(26,27.5),(28,29)],self.data.pixel_component_ids[1])
+        subset_state = MultiRangeSubsetState([(26, 27.5), (28, 29)],
+                                             self.data.pixel_component_ids[1])
 
         self.dc.new_subset_group(subset_state=subset_state, label='horizmultirange')
 
         reg = self.data.get_selection_definition(format='astropy-regions')
 
         assert isinstance(reg, CompoundPixelRegion)
-        assert reg.contains(PixCoord(26.4,54.6))
-        assert reg.contains(PixCoord(28.26,75.5))
-        assert not reg.contains(PixCoord(27.75,34))
+        assert reg.contains(PixCoord(26.4, 54.6))
+        assert reg.contains(PixCoord(28.26, 75.5))
+        assert not reg.contains(PixCoord(27.75, 34))
 
         rect1 = reg.region1
         assert isinstance(rect1, RectanglePixelRegion)
@@ -198,18 +202,18 @@ class TestAstropyRegions:
         assert_allclose(rect2.width, 1)
         assert_allclose(rect2.height, 128)
 
-
     def test_vert_multirange(self):
-        subset_state = MultiRangeSubsetState([(30,33.5),(21,27)],self.data.pixel_component_ids[0])
+        subset_state = MultiRangeSubsetState([(30, 33.5), (21, 27)],
+                                             self.data.pixel_component_ids[0])
 
         self.dc.new_subset_group(subset_state=subset_state, label='horizmultirange')
 
         reg = self.data.get_selection_definition(format='astropy-regions')
 
         assert isinstance(reg, CompoundPixelRegion)
-        assert reg.contains(PixCoord(145,31.2))
-        assert reg.contains(PixCoord(32,24.6))
-        assert not reg.contains(PixCoord(128,29.2))
+        assert reg.contains(PixCoord(145, 31.2))
+        assert reg.contains(PixCoord(32, 24.6))
+        assert not reg.contains(PixCoord(128, 29.2))
 
         rect1 = reg.region1
         assert isinstance(rect1, RectanglePixelRegion)
@@ -226,23 +230,23 @@ class TestAstropyRegions:
         assert_allclose(rect2.height, 6)
 
     def test_invalid_multiranges(self):
-        wrong_att = MultiRangeSubsetState([(30,33.5),(21,27)],self.data.main_components[0])
+        wrong_att = MultiRangeSubsetState([(30, 33.5), (21, 27)], self.data.main_components[0])
         empty = MultiRangeSubsetState([], self.data.pixel_component_ids[0])
         self.dc.new_subset_group(subset_state=wrong_att, label='wrong_att')
         self.dc.new_subset_group(subset_state=empty, label='empty')
 
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(subset_id='wrong_att', format='astropy-regions')
-        assert exc.value.args[0] == 'Multirange subset state att should be either x or y pixel coordinate'
+        expect_message = 'Multirange subset state att should be either x or y pixel coordinate'
+        assert exc.value.args[0] == expect_message
 
         with pytest.raises(ValueError) as exc:
             self.data.get_selection_definition(subset_id='empty', format='astropy-regions')
         assert exc.value.args[0] == 'Multirange subset state should contain at least one range'
 
-
-
     def test_pixel_subset(self):
-        subset_state = PixelSubsetState(self.data, [slice(15,16,None), slice(130,131,None)]) #(130,15)
+        slices = [slice(15, 16, None), slice(130, 131, None)]  # Correspond to pixel (130,15)
+        subset_state = PixelSubsetState(self.data, slices)
         self.dc.new_subset_group(subset_state=subset_state, label='pixel_subset')
         reg = self.data.get_selection_definition(format='astropy-regions')
 
@@ -250,14 +254,13 @@ class TestAstropyRegions:
         assert_equal(reg.center.x, 130)
         assert_equal(reg.center.y, 15)
 
-
     def test_and_region(self):
         subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],
                                        self.data.pixel_component_ids[0],
                                        RectangularROI(1, 5, 2, 6))
         subset_state2 = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      CircularROI(4.75, 5.75, 0.5))
+                                       self.data.pixel_component_ids[0],
+                                       CircularROI(4.75, 5.75, 0.5))
         and_subset_state = AndState(subset_state1, subset_state2)
         self.dc.new_subset_group(subset_state=and_subset_state, label='andstate')
 
@@ -267,7 +270,7 @@ class TestAstropyRegions:
         assert isinstance(reg.region1, RectanglePixelRegion)
         assert isinstance(reg.region2, CirclePixelRegion)
 
-        assert reg.contains(PixCoord(4.5,5.5))
+        assert reg.contains(PixCoord(4.5, 5.5))
         assert not reg.contains(PixCoord(3, 4))
         assert not reg.contains(PixCoord(5.1, 6.1))
         assert not reg.contains(PixCoord(11, 12))
@@ -315,10 +318,12 @@ class TestAstropyRegions:
         assert not reg.contains(PixCoord(11, 12))
 
     def test_multior_region(self):
-        rects = [(1,2,3,4),(1.5,2.5,3.5,4.5),(2,3,4,5)]
+        rects = [(1, 2, 3, 4),
+                 (1.5, 2.5, 3.5, 4.5),
+                 (2, 3, 4, 5)]
         states = [RoiSubsetState(self.data.pixel_component_ids[1],
-                                       self.data.pixel_component_ids[0],
-                                       RectangularROI(*rect)) for rect in rects]
+                                 self.data.pixel_component_ids[0],
+                                 RectangularROI(*rect)) for rect in rects]
 
         multior_subset_state = MultiOrState(states)
         self.dc.new_subset_group(subset_state=multior_subset_state, label='multiorstate')
@@ -338,14 +343,13 @@ class TestAstropyRegions:
         assert reg.contains(PixCoord(2.75, 4.75))
         assert not reg.contains(PixCoord(5, 7))
 
-
     def test_invalid_combos(self):
         good_subset = RoiSubsetState(self.data.pixel_component_ids[1],
-                                       self.data.pixel_component_ids[0],
-                                       RectangularROI(1, 5, 2, 6))
+                                     self.data.pixel_component_ids[0],
+                                     RectangularROI(1, 5, 2, 6))
         bad_subset = RoiSubsetState(self.data.pixel_component_ids[1],
-                                       self.data.main_components[0],
-                                       CircularROI(4.75, 5.75, 0.5))
+                                    self.data.main_components[0],
+                                    CircularROI(4.75, 5.75, 0.5))
         and_sub = AndState(good_subset, bad_subset)
         or_sub = OrState(good_subset, bad_subset)
         xor_sub = XorState(good_subset, bad_subset)

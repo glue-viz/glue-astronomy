@@ -1,10 +1,12 @@
 from glue.config import subset_state_translator
 from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState,\
                              XorState, MultiOrState, Subset, MultiRangeSubsetState
-from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI, RangeROI, AbstractMplRoi
+from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI,\
+                          RangeROI, AbstractMplRoi
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
-from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion, PointPixelRegion, PixCoord
+from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,\
+                    PointPixelRegion, PixCoord
 
 
 @subset_state_translator('astropy-regions')
@@ -14,12 +16,13 @@ class AstropyRegionsHandler:
 
         data = subset.data
         x_pix_att = data.pixel_component_ids[1]
-        y_pix_att  = data.pixel_component_ids[0]
+        y_pix_att = data.pixel_component_ids[0]
 
         if data.ndim != 2:
             raise NotImplementedError("Can only handle 2-d datasets at this time")
 
         subset_state = subset.subset_state
+
         def range_to_rect(ori, low, high):
             if ori == 'x':
                 ymin = 0
@@ -63,7 +66,7 @@ class AstropyRegionsHandler:
 
             elif isinstance(roi, AbstractMplRoi):
                 temp_sub = Subset(data)
-                temp_sub.subset_state = RoiSubsetState(x_pix_att,y_pix_att, roi.roi())
+                temp_sub.subset_state = RoiSubsetState(x_pix_att, y_pix_att, roi.roi())
                 try:
                     return self.to_object(temp_sub)
                 except NotImplementedError:
@@ -74,7 +77,7 @@ class AstropyRegionsHandler:
                 raise NotImplementedError("ROIs of type {0} are not yet supported"
                                           .format(roi.__class__.__name__))
 
-        elif isinstance (subset_state, RangeSubsetState):
+        elif isinstance(subset_state, RangeSubsetState):
             if subset_state.att == x_pix_att:
                 return range_to_rect('x', subset_state.lo, subset_state.hi)
             elif subset_state.att == y_pix_att:
@@ -82,42 +85,43 @@ class AstropyRegionsHandler:
             else:
                 raise ValueError('Range subset state att should be either x or y pixel coordinate')
 
-        elif isinstance (subset_state, MultiRangeSubsetState):
+        elif isinstance(subset_state, MultiRangeSubsetState):
             if subset_state.att == x_pix_att:
                 ori = 'x'
             elif subset_state.att == y_pix_att:
                 ori = 'y'
             else:
-                raise ValueError('Multirange subset state att should be either x or y pixel coordinate')
+                message = 'Multirange subset state att should be either x or y pixel coordinate'
+                raise ValueError(message)
             if len(subset_state.pairs) == 0:
-                raise ValueError('Multirange subset state should contain at least one range')
+                message = 'Multirange subset state should contain at least one range'
+                raise ValueError(message)
             region = range_to_rect(ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
             for pair in subset_state.pairs[1:]:
                 region = region | range_to_rect(ori, pair[0], pair[1])
             return region
 
-
         elif isinstance(subset_state, PixelSubsetState):
-            return PointPixelRegion(PixCoord(*subset_state.get_xy(data,1,0)))
+            return PointPixelRegion(PixCoord(*subset_state.get_xy(data, 1, 0)))
 
         elif isinstance(subset_state, AndState):
-            temp_sub1 = Subset(data = data)
+            temp_sub1 = Subset(data=data)
             temp_sub1.subset_state = subset_state.state1
-            temp_sub2 = Subset(data = data)
+            temp_sub2 = Subset(data=data)
             temp_sub2.subset_state = subset_state.state2
             return self.to_object(temp_sub1) & self.to_object(temp_sub2)
-        
+
         elif isinstance(subset_state, OrState):
-            temp_sub1 = Subset(data = data)
+            temp_sub1 = Subset(data=data)
             temp_sub1.subset_state = subset_state.state1
-            temp_sub2 = Subset(data = data)
+            temp_sub2 = Subset(data=data)
             temp_sub2.subset_state = subset_state.state2
             return self.to_object(temp_sub1) | self.to_object(temp_sub2)
-        
+
         elif isinstance(subset_state, XorState):
-            temp_sub1 = Subset(data = data)
+            temp_sub1 = Subset(data=data)
             temp_sub1.subset_state = subset_state.state1
-            temp_sub2 = Subset(data = data)
+            temp_sub2 = Subset(data=data)
             temp_sub2.subset_state = subset_state.state2
             return self.to_object(temp_sub1) ^ self.to_object(temp_sub2)
 
@@ -129,7 +133,6 @@ class AstropyRegionsHandler:
                 temp_sub.subset_state = state
                 region = region | self.to_object(temp_sub)
             return region
-
 
         else:
             raise NotImplementedError("Subset states of type {0} are not supported"
