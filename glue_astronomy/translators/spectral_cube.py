@@ -4,7 +4,6 @@ from astropy.wcs.wcsapi import BaseLowLevelWCS
 
 from glue.config import data_translator
 from glue.core import Data, Subset
-from astropy.wcs.wcsapi import BaseLowLevelWCS
 
 from astropy import units as u
 
