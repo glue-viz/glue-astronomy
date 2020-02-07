@@ -2,8 +2,8 @@ import numpy as np
 
 from glue.config import data_translator
 from glue.core import Data, Subset
-from glue.core.coordinates import WCSCoordinates
 
+from astropy.wcs import WCS
 from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
 
@@ -44,15 +44,15 @@ class Specutils1DHandler:
             data = data_or_subset
             subset_state = None
 
-        if isinstance(data.coords, WCSCoordinates):
+        if isinstance(data.coords, WCS):
 
             # Find spectral axis
-            spec_axis = data.coords.wcs.naxis - 1 - data.coords.wcs.wcs.spec
+            spec_axis = data.coords.naxis - 1 - data.coords.wcs.spec
 
             # Find non-spectral axes
             axes = tuple(i for i in range(data.ndim) if i != spec_axis)
 
-            kwargs = {'wcs': data.coords.wcs.sub([WCSSUB_SPECTRAL])}
+            kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
 
         elif isinstance(data.coords, SpectralCoordinates):
 
@@ -60,7 +60,7 @@ class Specutils1DHandler:
 
         else:
 
-            raise TypeError('data.coords should be an instance of WCSCoordinates '
+            raise TypeError('data.coords should be an instance of WCS '
                             'or SpectralCoordinates')
 
         if isinstance(attribute, str):

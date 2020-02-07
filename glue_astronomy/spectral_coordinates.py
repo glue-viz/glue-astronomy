@@ -14,6 +14,7 @@ class SpectralCoordinates(Coordinates):
     def __init__(self, values):
         self._index = np.arange(len(values))
         self._values = values
+        super().__init__(n_dim=1)
 
     @property
     def spectral_axis(self):
@@ -23,7 +24,7 @@ class SpectralCoordinates(Coordinates):
         """
         return self._values
 
-    def world2pixel(self, *world):
+    def world_to_pixel_values(self, *world):
         """
         Parameters
         ----------
@@ -34,7 +35,7 @@ class SpectralCoordinates(Coordinates):
         return tuple(np.interp(world, self._values.value, self._index,
                                left=np.nan, right=np.nan))
 
-    def pixel2world(self, *pixel):
+    def pixel_to_world_values(self, *pixel):
         """
         Parameters
         ----------
@@ -44,13 +45,3 @@ class SpectralCoordinates(Coordinates):
         """
         return tuple(np.interp(pixel, self._index, self._values.value,
                                left=np.nan, right=np.nan))
-
-    def dependent_axes(self, axis):
-        """
-        Parameters
-        ----------
-        axis
-        Returns
-        -------
-        """
-        return (axis,)

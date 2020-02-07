@@ -1,8 +1,10 @@
 import numpy as np
 
+from astropy.wcs.wcsapi import BaseLowLevelWCS
+
 from glue.config import data_translator
 from glue.core import Data, Subset
-from glue.core.coordinates import WCSCoordinates
+from astropy.wcs.wcsapi import BaseLowLevelWCS
 
 from astropy import units as u
 
@@ -13,8 +15,7 @@ from spectral_cube import SpectralCube, BooleanArrayMask
 class SpectralCubeHandler:
 
     def to_data(self, obj):
-        coords = WCSCoordinates(wcs=obj.wcs)
-        data = Data(coords=coords)
+        data = Data(coords=obj.wcs)
         data['flux'] = obj.filled_data[...]
         data.get_component('flux').units = str(obj.unit)
         data.meta.update(obj.meta)
@@ -43,10 +44,10 @@ class SpectralCubeHandler:
             data = data_or_subset
             subset_state = None
 
-        if isinstance(data.coords, WCSCoordinates):
-            wcs = data.coords.wcs
+        if isinstance(data.coords, BaseLowLevelWCS):
+            wcs = data.coords
         else:
-            raise TypeError('data.coords should be an instance of WCSCoordinates.')
+            raise TypeError('data.coords should be an instance of BaseLowLevelWCS.')
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
