@@ -8,7 +8,7 @@ from astropy.wcs import WCS
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
-from glue.core.coordinates import Coordinates, WCSCoordinates
+from glue.core.coordinates import Coordinates
 
 WCS_CELESTIAL = WCS(naxis=2)
 WCS_CELESTIAL.wcs.ctype = ['RA---TAN', 'DEC--TAN']
@@ -19,7 +19,7 @@ WCS_CELESTIAL.wcs.set()
 def test_to_ccddata(with_wcs):
 
     if with_wcs:
-        coords = WCSCoordinates(wcs=WCS_CELESTIAL)
+        coords = WCS_CELESTIAL
     else:
         coords = None
 
@@ -45,8 +45,7 @@ def test_to_ccddata(with_wcs):
 
 def test_to_ccddata_unitless():
 
-    coords = WCSCoordinates(wcs=WCS_CELESTIAL)
-    data = Data(label='image', coords=coords)
+    data = Data(label='image', coords=WCS_CELESTIAL)
     data.add_component(Component(np.array([[3.4, 2.3], [-1.1, 0.3]])), 'x')
 
     image = data.get_object(CCDData, attribute=data.id['x'])
@@ -65,21 +64,27 @@ def test_to_ccddata_invalid():
     assert exc.value.args[0] == 'Only 2-dimensional datasets can be converted to CCDData'
 
     class FakeCoordinates(Coordinates):
-        pass
 
-    coords = FakeCoordinates()
+        def pixel_to_world_values(self, *pixel):
+            raise NotImplementedError()
+
+        def world_to_pixel_values(self, *pixel):
+            raise NotImplementedError()
+
+    coords = FakeCoordinates(n_dim=2)
+    coords.low_level_wcs = coords
+
     data = Data(label='image-with-custom-coords', coords=coords)
     data.add_component(Component(np.array([[3, 4], [4, 5]]), units='Jy'), 'x')
 
     with pytest.raises(TypeError) as exc:
         data.get_object(CCDData, attribute=data.id['x'])
-    assert exc.value.args[0] == 'data.coords should be an instance of Coordinates or WCSCoordinates'
+    assert exc.value.args[0] == 'data.coords should be an instance of Coordinates or WCS'
 
 
 def test_to_ccddata_default_attribute():
 
-    coords = WCSCoordinates(wcs=WCS_CELESTIAL)
-    data = Data(label='image', coords=coords)
+    data = Data(label='image', coords=WCS_CELESTIAL)
 
     with pytest.raises(ValueError) as exc:
         data.get_object(CCDData)

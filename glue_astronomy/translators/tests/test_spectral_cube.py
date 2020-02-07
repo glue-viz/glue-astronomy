@@ -10,7 +10,6 @@ from astropy.tests.helper import assert_quantity_allclose
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
-from glue.core.coordinates import WCSCoordinates
 
 
 @pytest.fixture
@@ -23,9 +22,7 @@ def spectral_cube_wcs():
 
 def test_to_spectral_cube(spectral_cube_wcs):
 
-    coords = WCSCoordinates(wcs=spectral_cube_wcs)
-
-    data = Data(label='spectral_cube', coords=coords)
+    data = Data(label='spectral_cube', coords=spectral_cube_wcs)
     values = np.random.random((4, 5, 3))
     data.add_component(Component(values, units='Jy'), 'x')
 
@@ -48,9 +45,7 @@ def test_to_spectral_cube(spectral_cube_wcs):
 
 def test_to_spectrum1d_unitless(spectral_cube_wcs):
 
-    coords = WCSCoordinates(wcs=spectral_cube_wcs)
-
-    data = Data(label='spectral_cube', coords=coords)
+    data = Data(label='spectral_cube', coords=spectral_cube_wcs)
     values = np.random.random((4, 5, 3))
     data.add_component(Component(values), 'x')
 
@@ -79,16 +74,14 @@ def test_to_spectrum1d_missing_wcs():
 
     with pytest.raises(TypeError) as exc:
         data.get_object(SpectralCube, attribute=data.id['x'])
-    assert exc.value.args[0] == ('data.coords should be an instance of WCSCoordinates.')
+    assert exc.value.args[0] == ('data.coords should be an instance of BaseLowLevelWCS.')
 
 
 def test_to_spectrum1d_invalid_wcs():
 
     wcs = WCS(naxis=3)
-    coords = WCSCoordinates(wcs=wcs)
 
-    data = Data(label='not-a-spectral-cube')
-    data.coords = coords
+    data = Data(label='not-a-spectral-cube', coords=wcs)
     values = np.random.random((4, 5, 3))
     data.add_component(Component(values, units='Jy'), 'x')
 
@@ -97,10 +90,8 @@ def test_to_spectrum1d_invalid_wcs():
     assert exc.value.args[0] == ('No celestial axes found in WCS')
 
     wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', '']
-    coords = WCSCoordinates(wcs=wcs)
 
-    data = Data(label='not-a-spectral-cube')
-    data.coords = coords
+    data = Data(label='not-a-spectral-cube', coords=wcs)
     values = np.random.random((4, 5, 3))
     data.add_component(Component(values, units='Jy'), 'x')
 
@@ -111,9 +102,7 @@ def test_to_spectrum1d_invalid_wcs():
 
 def test_to_spectral_cube_default_attribute(spectral_cube_wcs):
 
-    coords = WCSCoordinates(wcs=spectral_cube_wcs)
-
-    data = Data(label='spectral_cube', coords=coords)
+    data = Data(label='spectral_cube', coords=spectral_cube_wcs)
     values = np.random.random((4, 5, 3))
 
     with pytest.raises(ValueError) as exc:

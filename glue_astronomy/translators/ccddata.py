@@ -1,8 +1,10 @@
 import numpy as np
 
+from astropy.wcs import WCS
+
 from glue.config import data_translator
 from glue.core import Data, Subset
-from glue.core.coordinates import Coordinates, WCSCoordinates
+from glue.core.coordinates import Coordinates
 
 from astropy import units as u
 
@@ -10,14 +12,10 @@ from astropy.nddata import CCDData
 
 
 @data_translator(CCDData)
-class Specutils1DHandler:
+class CCDDataHandler:
 
     def to_data(self, obj):
-        if obj.wcs is None:
-            coords = None
-        else:
-            coords = WCSCoordinates(wcs=obj.wcs)
-        data = Data(coords=coords)
+        data = Data(coords=obj.wcs)
         data['data'] = obj.data
         data.get_component('data').units = str(obj.unit)
         data.meta.update(obj.meta)
@@ -42,12 +40,12 @@ class Specutils1DHandler:
             data = data_or_subset
             subset_state = None
 
-        if isinstance(data.coords, WCSCoordinates):
-            wcs = data.coords.wcs
+        if isinstance(data.coords, WCS):
+            wcs = data.coords
         elif type(data.coords) is Coordinates or data.coords is None:
             wcs = None
         else:
-            raise TypeError('data.coords should be an instance of Coordinates or WCSCoordinates')
+            raise TypeError('data.coords should be an instance of Coordinates or WCS')
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
