@@ -359,14 +359,23 @@ class TestAstropyRegions:
         self.dc.new_subset_group(subset_state=xor_sub, label='xor')
         self.dc.new_subset_group(subset_state=multior, label='multior')
 
-        with pytest.raises(ValueError):
-            self.data.get_selection_definition(label='and', format='astropy-regions')
-        with pytest.raises(ValueError):
-            self.data.get_selection_definition(label='or', format='astropy-regions')
-        with pytest.raises(ValueError):
-            self.data.get_selection_definition(label='xor', format='astropy-regions')
-        with pytest.raises(ValueError):
-            self.data.get_selection_definition(label='multior', format='astropy-regions')
+        expected_error = 'Subset state yatt should be y pixel coordinate'
+
+        with pytest.raises(ValueError) as exc:
+            self.data.get_selection_definition(subset_id='and', format='astropy-regions')
+        assert exc.value.args[0] == expected_error
+
+        with pytest.raises(ValueError) as exc:
+            self.data.get_selection_definition(subset_id='or', format='astropy-regions')
+        assert exc.value.args[0] == expected_error
+
+        with pytest.raises(ValueError) as exc:
+            self.data.get_selection_definition(subset_id='xor', format='astropy-regions')
+        assert exc.value.args[0] == expected_error
+
+        with pytest.raises(ValueError) as exc:
+            self.data.get_selection_definition(subset_id='multior', format='astropy-regions')
+        assert exc.value.args[0] == expected_error
 
     def test_reordered_pixel_components(self):
         self.data._pixel_component_ids = self.data._pixel_component_ids[::-1]
