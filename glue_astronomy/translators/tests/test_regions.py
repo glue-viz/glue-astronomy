@@ -368,6 +368,35 @@ class TestAstropyRegions:
         with pytest.raises(ValueError):
             self.data.get_selection_definition(label='multior', format='astropy-regions')
 
+    def test_reordered_pixel_components(self):
+        self.data._pixel_component_ids = self.data._pixel_component_ids[::-1]
+        range_state = RangeSubsetState(105.5, 107.7, self.data.pixel_component_ids[1])
+
+        self.dc.new_subset_group(subset_state=range_state, label='reordered_range')
+        rect_state = RoiSubsetState(self.data.pixel_component_ids[0],
+                                    self.data.pixel_component_ids[1],
+                                    RectangularROI(1, 3.5, -0.2, 3.3))
+        self.dc.new_subset_group(subset_state=rect_state, label='reordered_rectangular')
+
+        range_region = self.data.get_selection_definition(subset_id='reordered_range',
+                                                          format='astropy-regions')
+        rect_region = self.data.get_selection_definition(subset_id='reordered_rectangular',
+                                                         format='astropy-regions')
+
+        assert isinstance(range_region, RectanglePixelRegion)
+
+        assert_allclose(range_region.center.x, 128)
+        assert_allclose(range_region.center.y, 106.6)
+        assert_allclose(range_region.width, 256)
+        assert_allclose(range_region.height, 2.2)
+
+        assert isinstance(rect_region, RectanglePixelRegion)
+
+        assert_allclose(rect_region.center.x, 2.25)
+        assert_allclose(rect_region.center.y, 1.55)
+        assert_allclose(rect_region.width, 2.5)
+        assert_allclose(rect_region.height, 3.5)
+
     def test_subset_id(self):
 
         subset_state = RoiSubsetState(self.data.pixel_component_ids[1],

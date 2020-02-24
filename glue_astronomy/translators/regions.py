@@ -59,11 +59,16 @@ class AstropyRegionsHandler:
         """
 
         data = subset.data
-        x_pix_att = data.pixel_component_ids[1]
-        y_pix_att = data.pixel_component_ids[0]
 
         if data.ndim != 2:
             raise NotImplementedError("Can only handle 2-d datasets at this time")
+
+        if data.pixel_component_ids[0].axis == 0:
+            x_pix_att = data.pixel_component_ids[1]
+            y_pix_att = data.pixel_component_ids[0]
+        else:
+            x_pix_att = data.pixel_component_ids[0]
+            y_pix_att = data.pixel_component_ids[1]
 
         subset_state = subset.subset_state
 
