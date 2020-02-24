@@ -9,10 +9,54 @@ from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
                     PointPixelRegion, PixCoord
 
 
+def range_to_rect(data, ori, low, high):
+    """
+    Converts a 1D range on a 2D glue Data set into an astropy regions RectangularPixelRegion.
+
+    The region covers the entirety of the data along the axis not specified by the `ori` parameter.
+
+    Parameters
+    ----------
+    data : `glue.core.data.Data`
+        The 2D glue Data object on which the range subset is defined.
+    ori: 'x' or 'y'
+        Specifies if the range limits are for the x-axis or y-axis respectively.
+    low: `float`
+        The lower limit of the range.
+    high: `float`
+        The upper limit of the range.
+    """
+    if data.ndim != 2:
+        raise NotImplementedError("Can only handle 2-d datasets")
+    if ori == 'x':
+        ymin = 0
+        ymax = data.shape[0]
+        xmin = low
+        xmax = high
+    else:
+        xmin = 0
+        xmax = data.shape[1]
+        ymin = low
+        ymax = high
+    xcen = 0.5 * (xmin + xmax)
+    ycen = 0.5 * (ymin + ymax)
+    width = xmax - xmin
+    height = ymax - ymin
+    return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
+
+
 @subset_state_translator('astropy-regions')
 class AstropyRegionsHandler:
 
     def to_object(self, subset):
+        """
+        Convert a glue Subset object to a astropy regions Region object.
+
+        Parameters
+        ----------
+        subset : `glue.core.subset.Subset`
+            The subset to convert to a Region object
+        """
 
         data = subset.data
         x_pix_att = data.pixel_component_ids[1]
@@ -22,23 +66,6 @@ class AstropyRegionsHandler:
             raise NotImplementedError("Can only handle 2-d datasets at this time")
 
         subset_state = subset.subset_state
-
-        def range_to_rect(ori, low, high):
-            if ori == 'x':
-                ymin = 0
-                ymax = data.shape[0]
-                xmin = low
-                xmax = high
-            else:
-                xmin = 0
-                xmax = data.shape[1]
-                ymin = low
-                ymax = high
-            xcen = 0.5 * (xmin + xmax)
-            ycen = 0.5 * (ymin + ymax)
-            width = xmax - xmin
-            height = ymax - ymin
-            return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
 
         if isinstance(subset_state, RoiSubsetState):
 
@@ -62,7 +89,7 @@ class AstropyRegionsHandler:
             elif isinstance(roi, PointROI):
                 return PointPixelRegion(PixCoord(*roi.center()))
             elif isinstance(roi, RangeROI):
-                return range_to_rect(roi.ori, roi.min, roi.max)
+                return range_to_rect(data, roi.ori, roi.min, roi.max)
 
             elif isinstance(roi, AbstractMplRoi):
                 temp_sub = Subset(data)
@@ -79,9 +106,9 @@ class AstropyRegionsHandler:
 
         elif isinstance(subset_state, RangeSubsetState):
             if subset_state.att == x_pix_att:
-                return range_to_rect('x', subset_state.lo, subset_state.hi)
+                return range_to_rect(data, 'x', subset_state.lo, subset_state.hi)
             elif subset_state.att == y_pix_att:
-                return range_to_rect('y', subset_state.lo, subset_state.hi)
+                return range_to_rect(data, 'y', subset_state.lo, subset_state.hi)
             else:
                 raise ValueError('Range subset state att should be either x or y pixel coordinate')
 
@@ -96,9 +123,9 @@ class AstropyRegionsHandler:
             if len(subset_state.pairs) == 0:
                 message = 'Multirange subset state should contain at least one range'
                 raise ValueError(message)
-            region = range_to_rect(ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
+            region = range_to_rect(data, ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
             for pair in subset_state.pairs[1:]:
-                region = region | range_to_rect(ori, pair[0], pair[1])
+                region = region | range_to_rect(data, ori, pair[0], pair[1])
             return region
 
         elif isinstance(subset_state, PixelSubsetState):
