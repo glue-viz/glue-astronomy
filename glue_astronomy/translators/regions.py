@@ -60,9 +60,6 @@ class AstropyRegionsHandler:
 
         data = subset.data
 
-        if data.ndim != 2:
-            raise NotImplementedError("Can only handle 2-d datasets at this time")
-
         if data.pixel_component_ids[0].axis == 0:
             x_pix_att = data.pixel_component_ids[1]
             y_pix_att = data.pixel_component_ids[0]
@@ -73,12 +70,6 @@ class AstropyRegionsHandler:
         subset_state = subset.subset_state
 
         if isinstance(subset_state, RoiSubsetState):
-
-            if subset_state.xatt != x_pix_att:
-                raise ValueError('Subset state xatt should be x pixel coordinate')
-
-            if subset_state.yatt != y_pix_att:
-                raise ValueError('Subset state yatt should be y pixel coordinate')
 
             roi = subset_state.roi
             if isinstance(roi, RectangularROI):
