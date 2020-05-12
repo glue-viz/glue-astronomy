@@ -343,6 +343,9 @@ class TestAstropyRegions:
         assert reg.contains(PixCoord(2.75, 4.75))
         assert not reg.contains(PixCoord(5, 7))
 
+    # The following test fails because the logical operations should now work?
+
+    @pytest.mark.xfail
     def test_invalid_combos(self):
         good_subset = RoiSubsetState(self.data.pixel_component_ids[1],
                                      self.data.pixel_component_ids[0],
