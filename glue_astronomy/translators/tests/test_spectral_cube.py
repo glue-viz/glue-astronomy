@@ -64,7 +64,7 @@ def test_to_spectrum1d_invalid_ndim():
 
     with pytest.raises(ValueError) as exc:
         data.get_object(SpectralCube, attribute=data.id['x'])
-    assert exc.value.args[0] == ('Data object should have 3 dimensions in order '
+    assert exc.value.args[0] == ('Data object should have 3 or 4 dimensions in order '
                                  'to be converted to a SpectralCube object.')
 
 
@@ -160,3 +160,43 @@ def test_spectral_cube_io():
                                            'io', 'spectral_cube', 'tests',
                                            'data', 'cube_3d.image'))
     assert isinstance(data.get_object(), SpectralCube)
+
+
+def test_spectral_cube_io_4d():
+    # As above, when original data was 4D with a 1-element Stokes axis
+    from glue_astronomy.io.spectral_cube.spectral_cube import read_spectral_cube
+    data = read_spectral_cube(os.path.join(os.path.dirname(__file__), '..', '..',
+                                           'io', 'spectral_cube', 'tests',
+                                           'data', 'cube_4d.fits'))
+    assert isinstance(data.get_object(), SpectralCube)
+
+
+def test_spectral_cube_io_4d_fullstokes():
+    # As above, when original data was 4D with a 1-element Stokes axis
+    from glue_astronomy.io.spectral_cube.spectral_cube import read_spectral_cube
+    data = read_spectral_cube(os.path.join(os.path.dirname(__file__), '..', '..',
+                                           'io', 'spectral_cube', 'tests',
+                                           'data', 'cube_4d_fullstokes.fits'))
+    assert isinstance(data.get_object(attribute='STOKES Q'), SpectralCube)
+
+
+def test_fits_io_4d():
+    # This time using the built-in glue FITS reader which returns a 4D dataset
+    from glue.core.data_factories.fits import fits_reader
+    data = fits_reader(os.path.join(os.path.dirname(__file__), '..', '..',
+                                    'io', 'spectral_cube', 'tests',
+                                    'data', 'cube_4d.fits'))[0]
+    sc = data.get_object(cls=SpectralCube)
+    assert isinstance(sc, SpectralCube)
+    assert sc.shape == (2, 3, 4)
+
+
+def test_fits_io_4d_fullstokes():
+    # And if there are multiple Stokes axes
+    from glue.core.data_factories.fits import fits_reader
+    data = fits_reader(os.path.join(os.path.dirname(__file__), '..', '..',
+                                    'io', 'spectral_cube', 'tests',
+                                    'data', 'cube_4d_fullstokes.fits'))[0]
+    sc = data.get_object(cls=SpectralCube)
+    assert isinstance(sc, SpectralCube)
+    assert sc.shape == (2, 3, 4)
