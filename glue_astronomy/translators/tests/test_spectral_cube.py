@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
@@ -148,3 +150,13 @@ def test_from_spectrum1d(spectral_cube_wcs):
     assert isinstance(spec_new, SpectralCube)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
     assert_quantity_allclose(spec_new.filled_data[...], values * u.Jy)
+
+
+def test_spectral_cube_io():
+    # Make sure that when we use the spectral cube I/O from glue-astronomy,
+    # glue knows to automatically give a SpectralCube
+    from glue_astronomy.io.spectral_cube.spectral_cube import read_spectral_cube
+    data = read_spectral_cube(os.path.join(os.path.dirname(__file__), '..', '..',
+                                           'io', 'spectral_cube', 'tests',
+                                           'data', 'cube_3d.image'))
+    assert isinstance(data.get_object(), SpectralCube)
