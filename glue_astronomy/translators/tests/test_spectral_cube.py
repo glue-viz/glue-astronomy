@@ -45,7 +45,7 @@ def test_to_spectral_cube(spectral_cube_wcs):
     assert_equal(spec_subset.mask.include(), values > 0.5)
 
 
-def test_to_spectrum1d_unitless(spectral_cube_wcs):
+def test_to_spectral_cube_unitless(spectral_cube_wcs):
 
     data = Data(label='spectral_cube', coords=spectral_cube_wcs)
     values = np.random.random((4, 5, 3))
@@ -57,7 +57,7 @@ def test_to_spectrum1d_unitless(spectral_cube_wcs):
     assert_quantity_allclose(spec.filled_data[...], values * u.one)
 
 
-def test_to_spectrum1d_invalid_ndim():
+def test_to_spectral_cube_invalid_ndim():
 
     data = Data(label='not-a-spectral-cube')
     data.add_component(Component(np.array([3.4, 2.3, -1.1, 0.3]), units='Jy'), 'x')
@@ -68,7 +68,7 @@ def test_to_spectrum1d_invalid_ndim():
                                  'to be converted to a SpectralCube object.')
 
 
-def test_to_spectrum1d_missing_wcs():
+def test_to_spectral_cube_missing_wcs():
 
     data = Data(label='not-a-spectral-cube')
     values = np.random.random((4, 5, 3))
@@ -79,7 +79,7 @@ def test_to_spectrum1d_missing_wcs():
     assert exc.value.args[0] == ('data.coords should be an instance of BaseLowLevelWCS.')
 
 
-def test_to_spectrum1d_invalid_wcs():
+def test_to_spectral_cube_invalid_wcs():
 
     wcs = WCS(naxis=3)
 
@@ -126,7 +126,7 @@ def test_to_spectral_cube_default_attribute(spectral_cube_wcs):
                                  'keyword argument.')
 
 
-def test_from_spectrum1d(spectral_cube_wcs):
+def test_from_spectral_cube(spectral_cube_wcs):
 
     values = np.random.random((4, 5, 3))
 
