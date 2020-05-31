@@ -23,6 +23,23 @@ def test_reader_fits():
     assert data.shape == (2, 3, 4)
 
 
+def test_reader_fits_4d():
+    from ..spectral_cube import read_spectral_cube
+    data = read_spectral_cube(os.path.join(DATA, 'cube_4d.fits'))
+    data['STOKES I']
+    assert data.shape == (2, 3, 4)
+
+
+def test_reader_fits_4d_fullstokes():
+    from ..spectral_cube import read_spectral_cube
+    data = read_spectral_cube(os.path.join(DATA, 'cube_4d_fullstokes.fits'))
+    data['STOKES I']
+    data['STOKES Q']
+    data['STOKES U']
+    data['STOKES V']
+    assert data.shape == (2, 3, 4)
+
+
 def test_reader_casa():
     pytest.importorskip('casatools')
     from ..spectral_cube import read_spectral_cube

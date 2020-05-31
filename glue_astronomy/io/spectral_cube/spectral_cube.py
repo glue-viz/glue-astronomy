@@ -53,6 +53,8 @@ def spectral_cube_to_data(cube, label=None):
         data = getattr(cube, component)._data
         result.add_component(data, label='STOKES {0}'.format(component))
 
+    result._preferred_translation = SpectralCube
+
     return result
 
 
