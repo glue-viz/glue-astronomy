@@ -95,4 +95,4 @@ class Specutils1DHandler:
 
         values = values * u.Unit(component.units)
 
-        return Spectrum1D(values, mask=mask, **kwargs)
+        return Spectrum1D(values, mask=~mask, **kwargs)
