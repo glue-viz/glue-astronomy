@@ -92,7 +92,9 @@ class Specutils1DHandler:
                 mask = data.get_mask(subset_state=subset_state)
                 values = values.copy()
                 values[~mask] = np.nan
+                # Flip mask to match specutils formalism
+                mask = ~mask
 
         values = values * u.Unit(component.units)
 
-        return Spectrum1D(values, mask=~mask, **kwargs)
+        return Spectrum1D(values, mask=mask, **kwargs)

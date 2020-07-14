@@ -72,6 +72,8 @@ class SpectralCubeHandler:
             values = values.copy()
             values[~mask] = np.nan
             mask = BooleanArrayMask(mask, wcs=wcs)
+            # Flip mask to match specutils formalism
+            mask = ~mask
 
         values = values * u.Unit(component.units)
 
@@ -85,4 +87,4 @@ class SpectralCubeHandler:
             values = values[slc[::-1]]
             wcs = wcs.sub(subkeep)
 
-        return SpectralCube(values, mask=~mask, wcs=wcs)
+        return SpectralCube(values, mask=mask, wcs=wcs)
