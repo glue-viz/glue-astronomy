@@ -19,7 +19,10 @@ class Specutils1DHandler:
         coords = SpectralCoordinates(obj.spectral_axis)
         data = Data(coords=coords)
         data['flux'] = obj.flux
+        data['uncertainty'] = obj.uncertainty.array if obj.uncertainty is not None else np.ones(obj.flux.shape)
+        data['mask'] = obj.mask if hasattr(obj, 'mask') and obj.mask is not None else np.zeros(obj.flux.shape).astype(bool)
         data.get_component('flux').units = str(obj.unit)
+        data.get_component('uncertainty').units = str(obj.unit)
         data.meta.update(obj.meta)
         return data
 
@@ -70,6 +73,8 @@ class Specutils1DHandler:
         elif attribute is None:
             if len(data.main_components) == 1:
                 attribute = data.main_components[0]
+            elif 'flux' in data.components:
+                attribute = data.find_component_id('flux')
             else:
                 raise ValueError("Data object has more than one attribute, so "
                                  "you will need to specify which one to use as "
