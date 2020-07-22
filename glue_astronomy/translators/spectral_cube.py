@@ -70,7 +70,6 @@ class SpectralCubeHandler:
         else:
             mask = data.get_mask(subset_state=subset_state)
             values = values.copy()
-            values[~mask] = np.nan
             mask = BooleanArrayMask(mask, wcs=wcs)
             # Flip mask to match specutils formalism
             mask = ~mask
