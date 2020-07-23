@@ -19,8 +19,11 @@ class Specutils1DHandler:
         coords = SpectralCoordinates(obj.spectral_axis)
         data = Data(coords=coords)
         data['flux'] = obj.flux
-        data['uncertainty'] = obj.uncertainty.array if obj.uncertainty is not None else np.ones(obj.flux.shape)
-        data['mask'] = obj.mask if hasattr(obj, 'mask') and obj.mask is not None else np.zeros(obj.flux.shape).astype(bool)
+        data['uncertainty'] = obj.uncertainty.array \
+            if obj.uncertainty is not None else np.ones(obj.flux.shape)
+        data['mask'] = obj.mask \
+            if hasattr(obj, 'mask') and obj.mask is not None \
+            else np.zeros(obj.flux.shape).astype(bool)
         data.get_component('flux').units = str(obj.unit)
         data.get_component('uncertainty').units = str(obj.unit)
         data.meta.update(obj.meta)
