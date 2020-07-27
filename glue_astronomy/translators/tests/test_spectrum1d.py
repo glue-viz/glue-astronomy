@@ -135,10 +135,10 @@ def test_from_spectrum1d(mode):
 
         kwargs = {'spectral_axis': [1, 2, 3, 4] * u.Hz}
 
-    spec = Spectrum1D([2, 3, 4, 5] * u.Jy, 
+    spec = Spectrum1D([2, 3, 4, 5] * u.Jy,
                       uncertainty=StdDevUncertainty(
                           [0.1, 0.1, 0.1, 0.1] * u.Jy),
-                      mask=[False, False, False, False], 
+                      mask=[False, False, False, False],
                       **kwargs)
 
     data_collection = DataCollection()
