@@ -71,8 +71,6 @@ class SpectralCubeHandler:
             mask = data.get_mask(subset_state=subset_state)
             values = values.copy()
             mask = BooleanArrayMask(mask, wcs=wcs)
-            # Flip mask to match specutils formalism
-            mask = ~mask
 
         values = values * u.Unit(component.units)
 
