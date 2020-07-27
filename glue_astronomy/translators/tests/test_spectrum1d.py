@@ -137,7 +137,8 @@ def test_from_spectrum1d(mode):
 
     spec = Spectrum1D([2, 3, 4, 5] * u.Jy, 
                       uncertainty=StdDevUncertainty(
-                          [0.1, 0.1, 0.1, 0.1] * u.Jy), 
+                          [0.1, 0.1, 0.1, 0.1] * u.Jy),
+                      mask=[False, False, False, False], 
                       **kwargs)
 
     data_collection = DataCollection()
@@ -147,7 +148,7 @@ def test_from_spectrum1d(mode):
     data = data_collection['spectrum']
 
     assert isinstance(data, Data)
-    assert len(data.main_components) == 2
+    assert len(data.main_components) == 3
     assert data.main_components[0].label == 'flux'
     assert_allclose(data['flux'], [2, 3, 4, 5])
     component = data.get_component('flux')
@@ -166,7 +167,7 @@ def test_from_spectrum1d(mode):
     assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
     assert spec_new.uncertainty is None
 
-    # Check complete rouch-tripping, including uncertainties
+    # Check complete round-tripping, including uncertainties
     spec_new = data.get_object()
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
