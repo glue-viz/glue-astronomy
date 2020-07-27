@@ -6,10 +6,15 @@ from glue.core import Data, Subset
 from astropy.wcs import WCS
 from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
+from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
 from specutils import Spectrum1D
+
+UNCERT_REF = {'std': StdDevUncertainty,
+              'var': VarianceUncertainty,
+              'ivar': InverseVariance}
 
 
 @data_translator(Spectrum1D)
@@ -32,7 +37,7 @@ class Specutils1DHandler:
             data['mask'] = obj.mask
 
         data.meta.update(obj.meta)
-        
+
         return data
 
     def to_object(self, data_or_subset, attribute=None, statistic='mean'):
@@ -93,26 +98,50 @@ class Specutils1DHandler:
                                  "the flux for the spectrum using the "
                                  "attribute= keyword argument.")
 
-        component = data.get_component(attribute)
+        def parse_attributes(attributes):
+            data_kwargs = {}
 
-        # Get mask if there is one defined, or if this is a subset
-        if subset_state is None:
-            mask = None
-        else:
-            mask = data.get_mask(subset_state=subset_state)
-            mask = ~mask
+            for attribute in attributes:
+                component = data.get_component(attribute)
 
-        # Collapse values and mask to profile
-        if data.ndim > 1:
-            # Get units and attach to value
-            values = data.compute_statistic(statistic, attribute, axis=axes,
-                                            subset_state=subset_state)
-            if mask is not None:
-                collapse_axes = tuple([x for x in range(1, data.ndim)])
-                mask = np.all(mask, collapse_axes)
-        else:
-            values = data.get_data(attribute)
+                # Get mask if there is one defined, or if this is a subset
+                if subset_state is None:
+                    mask = None
+                else:
+                    mask = data.get_mask(subset_state=subset_state)
+                    mask = ~mask
 
-        values = values * u.Unit(component.units)
+                # Collapse values and mask to profile
+                if data.ndim > 1:
+                    # Get units and attach to value
+                    values = data.compute_statistic(statistic, attribute, axis=axes,
+                                                    subset_state=subset_state)
+                    if mask is not None:
+                        collapse_axes = tuple([x for x in range(1, data.ndim)])
+                        mask = np.all(mask, collapse_axes)
+                else:
+                    values = data.get_data(attribute)
 
-        return Spectrum1D(values, mask=mask, **kwargs)
+                attribute_label = attribute.label
+
+                if attribute_label not in ('flux', 'uncertainty'):
+                    attribute_label = 'flux'
+
+                values = values * u.Unit(component.units)
+
+                # If the attribute is uncertainty, we must coerce it to a
+                #  specific uncertainty type. If no value exists in the glue
+                #  object meta dictionary, use standard deviation.
+                if attribute_label == 'uncertainty':
+                    values = UNCERT_REF[
+                        data.meta.get('uncertainty_type', 'std')](values)
+
+                data_kwargs.update({attribute_label: values,
+                                   'mask': mask})
+
+            return data_kwargs
+
+        data_kwargs = parse_attributes(
+            [attribute] if not hasattr(attribute, '__len__') else attribute)
+
+        return Spectrum1D(**data_kwargs, **kwargs)
