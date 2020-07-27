@@ -76,7 +76,7 @@ class Specutils1DHandler:
         elif attribute is None:
             if len(data.main_components) == 1:
                 attribute = data.main_components[0]
-            elif 'flux' in data.components:
+            elif 'flux' in [x.label for x in data.components]:
                 attribute = data.find_component_id('flux')
             else:
                 raise ValueError("Data object has more than one attribute, so "
