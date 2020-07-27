@@ -147,7 +147,7 @@ def test_from_spectrum1d(mode):
     data = data_collection['spectrum']
 
     assert isinstance(data, Data)
-    assert len(data.main_components) == 3
+    assert len(data.main_components) == 2
     assert data.main_components[0].label == 'flux'
     assert_allclose(data['flux'], [2, 3, 4, 5])
     component = data.get_component('flux')
