@@ -72,7 +72,7 @@ class CCDDataHandler:
         else:
             mask = data.get_mask(subset_state=subset_state)
             values = values.copy()
-            # Flip mask to match specutils formalism
+            # Flip mask to match astropy.ndddata formalism
             mask = ~mask
 
         values = values * u.Unit(component.units)
