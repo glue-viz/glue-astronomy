@@ -38,9 +38,9 @@ def test_to_ccddata(with_wcs):
                                           attribute=data.id['x'])
 
     assert image_subset.wcs is (WCS_CELESTIAL if with_wcs else None)
-    assert_allclose(image_subset.data, [[3.4, 2.3], [np.nan, np.nan]])
+    assert_allclose(image_subset.data, [[3.4, 2.3], [-1.1, 0.3]])
     assert image_subset.unit is u.Jy
-    assert_equal(image_subset.mask, [[1, 1], [0, 0]])
+    assert_equal(image_subset.mask, [[0, 0], [1, 1]])
 
 
 def test_to_ccddata_unitless():
