@@ -35,8 +35,8 @@ def test_to_spectrum1d():
                                          attribute=data.id['x'])
 
     assert_quantity_allclose(spec_subset.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
-    assert_quantity_allclose(spec_subset.flux, [3.4, 2.3, np.nan, np.nan] * u.Jy)
-    assert_equal(spec_subset.mask, [1, 1, 0, 0])
+    assert_quantity_allclose(spec_subset.flux, [3.4, 2.3, -1.1, 0.3] * u.Jy)
+    assert_equal(spec_subset.mask, [0, 0, 1, 1])
 
 
 def test_to_spectrum1d_unitless():

@@ -78,20 +78,23 @@ class Specutils1DHandler:
 
         component = data.get_component(attribute)
 
-        # Collapse values to profile
+        # Get mask if there is one defined, or if this is a subset
+        if subset_state is None:
+            mask = None
+        else:
+            mask = data.get_mask(subset_state=subset_state)
+            mask = ~mask
+
+        # Collapse values and mask to profile
         if data.ndim > 1:
             # Get units and attach to value
             values = data.compute_statistic(statistic, attribute, axis=axes,
                                             subset_state=subset_state)
-            mask = None
+            if mask is not None:
+                collapse_axes = tuple([x for x in range(1, data.ndim)])
+                mask = np.all(mask, collapse_axes)
         else:
             values = data.get_data(attribute)
-            if subset_state is None:
-                mask = None
-            else:
-                mask = data.get_mask(subset_state=subset_state)
-                values = values.copy()
-                values[~mask] = np.nan
 
         values = values * u.Unit(component.units)
 
