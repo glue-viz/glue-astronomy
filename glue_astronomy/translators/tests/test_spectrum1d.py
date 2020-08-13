@@ -7,6 +7,7 @@ from specutils import Spectrum1D
 from astropy import units as u
 from astropy.wcs import WCS
 from astropy.tests.helper import assert_quantity_allclose
+from astropy.nddata import StdDevUncertainty
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
@@ -134,7 +135,11 @@ def test_from_spectrum1d(mode):
 
         kwargs = {'spectral_axis': [1, 2, 3, 4] * u.Hz}
 
-    spec = Spectrum1D([2, 3, 4, 5] * u.Jy, **kwargs)
+    spec = Spectrum1D([2, 3, 4, 5] * u.Jy,
+                      uncertainty=StdDevUncertainty(
+                          [0.1, 0.1, 0.1, 0.1] * u.Jy),
+                      mask=[False, False, False, False],
+                      **kwargs)
 
     data_collection = DataCollection()
 
@@ -143,14 +148,29 @@ def test_from_spectrum1d(mode):
     data = data_collection['spectrum']
 
     assert isinstance(data, Data)
-    assert len(data.main_components) == 1
+    assert len(data.main_components) == 3
     assert data.main_components[0].label == 'flux'
     assert_allclose(data['flux'], [2, 3, 4, 5])
     component = data.get_component('flux')
     assert component.units == 'Jy'
 
-    # Check round-tripping
+    # Check uncertainty parsing within glue data object
+    assert data.main_components[1].label == 'uncertainty'
+    assert_allclose(data['uncertainty'], [0.1, 0.1, 0.1, 0.1])
+    component = data.get_component('uncertainty')
+    assert component.units == 'Jy'
+
+    # Check round-tripping via single attribute reference
     spec_new = data.get_object(attribute='flux')
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
+    assert spec_new.uncertainty is None
+
+    # Check complete round-tripping, including uncertainties
+    spec_new = data.get_object()
+    assert isinstance(spec_new, Spectrum1D)
+    assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
+    assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
+    assert spec_new.uncertainty is not None
+    assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy)
