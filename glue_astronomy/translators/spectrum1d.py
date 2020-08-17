@@ -29,7 +29,7 @@ class Specutils1DHandler:
         # Include uncertainties if they exist
         if obj.uncertainty is not None:
             data['uncertainty'] = obj.uncertainty.quantity
-            data.get_component('uncertainty').units = str(obj.unit)
+            data.get_component('uncertainty').units = str(obj.uncertainty.unit)
             data.meta.update({'uncertainty_type': obj.uncertainty.uncertainty_type})
 
         # Include mask if it exists
