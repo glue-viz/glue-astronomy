@@ -200,3 +200,31 @@ def test_fits_io_4d_fullstokes():
     sc = data.get_object(cls=SpectralCube)
     assert isinstance(sc, SpectralCube)
     assert sc.shape == (2, 3, 4)
+
+
+def test_meta_round_trip():
+    data = np.array([[[0, 1, 2, 3, 4]]])
+    wcs = WCS(naxis=3)
+    wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', 'VELO-HEL']
+    meta = {'BUNIT': 'Jy/beam',
+            'some_variable': 10}
+
+    cube = SpectralCube(data, wcs=wcs, meta=meta)
+
+    data_collection = DataCollection()
+
+    data_collection['spec_cube'] = cube
+
+    # Test to see if meta exists in glue data object
+    glue_data = data_collection['spec_cube']
+    assert isinstance(glue_data, Data)
+    assert len(glue_data.meta) == 2
+    assert glue_data.meta['BUNIT'] == 'Jy/beam'
+    assert glue_data.meta['some_variable'] == 10
+
+    # Test to see if meta is included in translated spectral cube instance
+    sc_data = data_collection['spec_cube'].get_object()
+    assert isinstance(sc_data, SpectralCube)
+    assert len(sc_data.meta) == 2
+    assert sc_data.meta['BUNIT'] == 'Jy/beam'
+    assert sc_data.meta['some_variable'] == 10
