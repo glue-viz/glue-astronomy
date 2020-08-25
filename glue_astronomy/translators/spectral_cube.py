@@ -85,4 +85,4 @@ class SpectralCubeHandler:
             values = values[slc[::-1]]
             wcs = wcs.sub(subkeep)
 
-        return SpectralCube(values, mask=mask, wcs=wcs)
+        return SpectralCube(values, mask=mask, wcs=wcs, meta=data.meta)
