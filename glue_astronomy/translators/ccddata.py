@@ -1,6 +1,5 @@
-import numpy as np
-
 from astropy.wcs import WCS
+from astropy.nddata import CCDData
 
 from glue.config import data_translator
 from glue.core import Data, Subset

@@ -7,7 +7,7 @@ from specutils import Spectrum1D
 from astropy import units as u
 from astropy.wcs import WCS
 from astropy.tests.helper import assert_quantity_allclose
-from astropy.nddata import StdDevUncertainty
+from astropy.nddata import VarianceUncertainty
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
@@ -136,8 +136,8 @@ def test_from_spectrum1d(mode):
         kwargs = {'spectral_axis': [1, 2, 3, 4] * u.Hz}
 
     spec = Spectrum1D([2, 3, 4, 5] * u.Jy,
-                      uncertainty=StdDevUncertainty(
-                          [0.1, 0.1, 0.1, 0.1] * u.Jy),
+                      uncertainty=VarianceUncertainty(
+                          [0.1, 0.1, 0.1, 0.1] * u.Jy**2),
                       mask=[False, False, False, False],
                       **kwargs)
 
@@ -158,7 +158,7 @@ def test_from_spectrum1d(mode):
     assert data.main_components[1].label == 'uncertainty'
     assert_allclose(data['uncertainty'], [0.1, 0.1, 0.1, 0.1])
     component = data.get_component('uncertainty')
-    assert component.units == 'Jy'
+    assert component.units == 'Jy2'
 
     # Check round-tripping via single attribute reference
     spec_new = data.get_object(attribute='flux')
@@ -173,4 +173,4 @@ def test_from_spectrum1d(mode):
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
     assert spec_new.uncertainty is not None
-    assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy)
+    assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)

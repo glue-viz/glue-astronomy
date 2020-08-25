@@ -1,5 +1,3 @@
-import numpy as np
-
 from astropy.wcs.wcsapi import BaseLowLevelWCS
 
 from glue.config import data_translator
