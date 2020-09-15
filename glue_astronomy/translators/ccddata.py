@@ -76,4 +76,4 @@ class CCDDataHandler:
 
         values = values * u.Unit(component.units)
 
-        return CCDData(values, mask=mask, wcs=wcs)
+        return CCDData(values, mask=mask, wcs=wcs, meta=data.meta)
