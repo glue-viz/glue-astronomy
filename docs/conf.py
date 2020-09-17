@@ -31,8 +31,8 @@ if os.environ.get('READTHEDOCS') == 'True':
 
 intersphinx_cache_limit = 10     # days to keep the cached inventories
 intersphinx_mapping = {
-    'sphinx': ('https://www.sphinx-doc.org/en/latest/', None),
-    'python': ('https://docs.python.org/3.7', None),
+    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
+    'python': ('https://docs.python.org/3', None),
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
     'glue-astronomy': ('http://docs.glueviz.org/en/latest/', None),
