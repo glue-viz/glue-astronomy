@@ -21,8 +21,11 @@ UNCERT_REF = {'std': StdDevUncertainty,
 class Specutils1DHandler:
 
     def to_data(self, obj):
-        coords = SpectralCoordinates(obj.spectral_axis)
-        data = Data(coords=coords)
+        if len(obj.shape) == 1:
+            coords = SpectralCoordinates(obj.spectral_axis)
+            data = Data(coords=coords)
+        else:
+            data = Data(coords=obj.wcs)
         data['flux'] = obj.flux
         data.get_component('flux').units = str(obj.unit)
 
