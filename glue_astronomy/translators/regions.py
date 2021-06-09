@@ -57,7 +57,6 @@ class AstropyRegionsHandler:
         subset : `glue.core.subset.Subset`
             The subset to convert to a Region object
         """
-        print("here")
         data = subset.data
 
         if data.pixel_component_ids[0].axis == 0:
