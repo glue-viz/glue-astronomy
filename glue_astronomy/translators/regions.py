@@ -2,11 +2,11 @@ from glue.config import subset_state_translator
 from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState,\
                              XorState, MultiOrState, Subset, MultiRangeSubsetState
 from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI,\
-                          RangeROI, AbstractMplRoi
+                          RangeROI, AbstractMplRoi, EllipticalROI
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,\
-                    PointPixelRegion, PixCoord
+                    PointPixelRegion, PixCoord, EllipsePixelRegion
 
 
 def range_to_rect(data, ori, low, high):
@@ -57,7 +57,7 @@ class AstropyRegionsHandler:
         subset : `glue.core.subset.Subset`
             The subset to convert to a Region object
         """
-
+        print("here")
         data = subset.data
 
         if data.pixel_component_ids[0].axis == 0:
@@ -82,6 +82,9 @@ class AstropyRegionsHandler:
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
             elif isinstance(roi, CircularROI):
                 return CirclePixelRegion(PixCoord(*roi.get_center()), roi.get_radius())
+            elif isinstance(roi, EllipticalROI):
+                print(PixCoord(roi.xc, roi.xy), roi.radius_x, roi.radius_y)
+                return EllipsePixelRegion(PixCoord(roi.xc, roi.xy), roi.radius_x, roi.radius_y)
             elif isinstance(roi, PointROI):
                 return PointPixelRegion(PixCoord(*roi.center()))
             elif isinstance(roi, RangeROI):
