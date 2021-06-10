@@ -82,7 +82,6 @@ class AstropyRegionsHandler:
             elif isinstance(roi, CircularROI):
                 return CirclePixelRegion(PixCoord(*roi.get_center()), roi.get_radius())
             elif isinstance(roi, EllipticalROI):
-                print(PixCoord(roi.xc, roi.xy), roi.radius_x, roi.radius_y)
                 return EllipsePixelRegion(PixCoord(roi.xc, roi.xy), roi.radius_x, roi.radius_y)
             elif isinstance(roi, PointROI):
                 return PointPixelRegion(PixCoord(*roi.center()))
