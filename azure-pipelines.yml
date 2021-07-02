@@ -16,7 +16,7 @@ jobs:
     libraries:
       apt:
         - libxkbcommon-x11-0
-        - libgfortran3
+        - libgfortran5
       brew:
         - enchant
 
