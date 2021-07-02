@@ -1,13 +1,10 @@
 from astropy.wcs import WCS
 from astropy.nddata import CCDData
+from astropy import units as u
 
 from glue.config import data_translator
 from glue.core import Data, Subset
 from glue.core.coordinates import Coordinates
-
-from astropy import units as u
-
-from astropy.nddata import CCDData
 
 
 @data_translator(CCDData)
