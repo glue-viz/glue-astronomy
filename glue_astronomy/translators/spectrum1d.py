@@ -21,26 +21,38 @@ UNCERT_REF = {'std': StdDevUncertainty,
 class Specutils1DHandler:
 
     def to_data(self, obj):
-        coords = SpectralCoordinates(obj.spectral_axis)
-        data = Data(coords=coords)
-        data['flux'] = obj.flux
-        data.get_component('flux').units = str(obj.unit)
+
+        # Glue expects spectral axis first for cubes (opposite of specutils).
+        # Swap the spectral axis to first here. to_object doesn't need this because
+        # Spectrum1D does it automatically on initialization.
+        if len(obj.flux.shape) == 3:
+            data = Data(coords=obj.wcs.swapaxes(-1, 0))
+            data['flux'] = np.swapaxes(obj.flux, -1, 0)
+            data.get_component('flux').units = str(obj.unit)
+        else:
+            data = Data(coords=obj.wcs)
+            data['flux'] = obj.flux
+            data.get_component('flux').units = str(obj.unit)
 
         # Include uncertainties if they exist
         if obj.uncertainty is not None:
             data['uncertainty'] = obj.uncertainty.quantity
+            if len(obj.flux.shape) == 3:
+                data['uncertainty'] = np.swapaxes(data['uncertainty'], -1, 0)
             data.get_component('uncertainty').units = str(obj.uncertainty.unit)
             data.meta.update({'uncertainty_type': obj.uncertainty.uncertainty_type})
 
         # Include mask if it exists
         if obj.mask is not None:
             data['mask'] = obj.mask
+            if len(obj.flux.shape) == 3:
+                data['mask'] = np.swapaxes(data['mask'], -1, 0)
 
         data.meta.update(obj.meta)
 
         return data
 
-    def to_object(self, data_or_subset, attribute=None, statistic='mean'):
+    def to_object(self, data_or_subset, attribute=None, statistic=None):
         """
         Convert a glue Data object to a Spectrum1D object.
 
@@ -112,7 +124,7 @@ class Specutils1DHandler:
                     mask = ~mask
 
                 # Collapse values and mask to profile
-                if data.ndim > 1:
+                if data.ndim > 1 and statistic is not None:
                     # Get units and attach to value
                     values = data.compute_statistic(statistic, attribute, axis=axes,
                                                     subset_state=subset_state)
