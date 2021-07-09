@@ -7,6 +7,7 @@ from astropy.wcs import WCS
 from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
 from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
+from gwcs import WCS as GWCS
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
@@ -30,7 +31,11 @@ class Specutils1DHandler:
             data['flux'] = np.swapaxes(obj.flux, -1, 0)
             data.get_component('flux').units = str(obj.unit)
         else:
-            data = Data(coords=obj.wcs)
+            # Don't use the dummy GWCS created by Spectrum1D initialized with spectral_axis
+            if isinstance(obj.wcs, GWCS):
+                data = Data(coords=SpectralCoordinates(obj.spectral_axis))
+            else:
+                data = Data(coords=obj.wcs)
             data['flux'] = obj.flux
             data.get_component('flux').units = str(obj.unit)
 
@@ -88,7 +93,7 @@ class Specutils1DHandler:
             kwargs = {'spectral_axis': data.coords.spectral_axis}
 
         else:
-
+            print(type(data.coords))
             raise TypeError('data.coords should be an instance of WCS '
                             'or SpectralCoordinates')
 
