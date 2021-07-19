@@ -87,6 +87,7 @@ class Specutils1DHandler:
             axes = tuple(i for i in range(data.ndim) if i != spec_axis)
 
             kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+            #kwargs = {'wcs': data.coords}
 
         elif isinstance(data.coords, SpectralCoordinates):
 
