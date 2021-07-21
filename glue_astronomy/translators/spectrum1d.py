@@ -41,17 +41,19 @@ class Specutils1DHandler:
 
         # Include uncertainties if they exist
         if obj.uncertainty is not None:
-            data['uncertainty'] = obj.uncertainty.quantity
             if len(obj.flux.shape) == 3:
-                data['uncertainty'] = np.swapaxes(data['uncertainty'], -1, 0)
+                data['uncertainty'] = np.swapaxes(obj.uncertainty.quantity, -1, 0)
+            else:
+                data['uncertainty'] = obj.uncertainty.quantity
             data.get_component('uncertainty').units = str(obj.uncertainty.unit)
             data.meta.update({'uncertainty_type': obj.uncertainty.uncertainty_type})
 
         # Include mask if it exists
         if obj.mask is not None:
-            data['mask'] = obj.mask
             if len(obj.flux.shape) == 3:
-                data['mask'] = np.swapaxes(data['mask'], -1, 0)
+                data['mask'] = np.swapaxes(obj.mask, -1, 0)
+            else:
+                data['mask'] = obj.mask
 
         data.meta.update(obj.meta)
 
@@ -86,8 +88,10 @@ class Specutils1DHandler:
             # Find non-spectral axes
             axes = tuple(i for i in range(data.ndim) if i != spec_axis)
 
-            kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
-            #kwargs = {'wcs': data.coords}
+            if statistic is not None:
+                kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+            else:
+                kwargs = {'wcs': data.coords}
 
         elif isinstance(data.coords, SpectralCoordinates):
 
