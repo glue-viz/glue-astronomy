@@ -72,7 +72,6 @@ def test_to_spectrum1d_from_3d_cube():
     # Set up simple spectral WCS
     wcs = WCS(naxis=3)
     wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', 'VELO-LSR']
-    #wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', 'WAVE-LOG']
     wcs.wcs.set()
 
     data = Data(label='spectral-cube', coords=wcs)
@@ -128,21 +127,22 @@ def test_to_spectrum1d_default_attribute():
 def test_from_spectrum1d(mode):
 
     if mode == 'wcs3d':
-        # Set up simple spectral WCS
+        # This test is intended to be run with the version of Spectrum1D based
+        # on NDCube 2.0
+        pytest.importorskip("ndcube", minversion="1.99")
+
+        # Set up simple spatial+spectral WCS
         wcs = WCS(naxis=3)
-        wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', 'WAVE-LOG']
-        wcs.wcs.crval = [205, 27, 3.6216e-07]
-        wcs.wcs.crpix = [1, 1, 1]
-        wcs.wcs.cdelt = [-1.4e-4, 1.4e-4, 8.34e-11]
+        wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', 'FREQ']
         wcs.wcs.set()
-        flux = np.ones((3, 4, 5))*u.Unit('Jy')
+        flux = np.ones((4, 4, 5))*u.Unit('Jy')
         uncertainty = VarianceUncertainty(np.square(flux*0.1))
-        mask = np.zeros((3,4,5))
+        mask = np.zeros((4, 4, 5))
         kwargs = {'wcs': wcs, 'uncertainty': uncertainty, 'mask': mask}
     else:
         flux = [2, 3, 4, 5] * u.Jy
         uncertainty = VarianceUncertainty([0.1, 0.1, 0.1, 0.1] * u.Jy**2)
-        mask=[False, False, False, False]
+        mask = [False, False, False, False]
         if mode == 'wcs1d':
             wcs = WCS(naxis=1)
             wcs.wcs.ctype = ['FREQ']
@@ -177,14 +177,24 @@ def test_from_spectrum1d(mode):
     spec_new = data.get_object(attribute='flux')
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
-    assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
+    if mode == 'wcs3d':
+        assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+    else:
+        assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
     assert spec_new.uncertainty is None
 
     # Check complete round-tripping, including uncertainties
     spec_new = data.get_object()
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
-    assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
-    assert spec_new.uncertainty is not None
-    assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
-
+    if mode == 'wcs3d':
+        assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+        assert spec_new.uncertainty is not None
+        print(spec_new.uncertainty)
+        print(uncertainty)
+        assert_quantity_allclose(spec_new.uncertainty.quantity,
+                                 np.ones((5, 4, 4))*0.01*u.Jy**2)
+    else:
+        assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
+        assert spec_new.uncertainty is not None
+        assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)

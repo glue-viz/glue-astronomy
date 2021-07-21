@@ -98,7 +98,6 @@ class Specutils1DHandler:
             kwargs = {'spectral_axis': data.coords.spectral_axis}
 
         else:
-            print(type(data.coords))
             raise TypeError('data.coords should be an instance of WCS '
                             'or SpectralCoordinates')
 
