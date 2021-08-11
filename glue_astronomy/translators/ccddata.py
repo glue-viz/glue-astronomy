@@ -1,6 +1,6 @@
-from astropy.wcs import WCS
 from astropy.nddata import CCDData
 from astropy import units as u
+from astropy.wcs.wcsapi import BaseHighLevelWCS
 
 from glue.config import data_translator
 from glue.core import Data, Subset
@@ -36,12 +36,12 @@ class CCDDataHandler:
             data = data_or_subset
             subset_state = None
 
-        if isinstance(data.coords, WCS):
+        if isinstance(data.coords, BaseHighLevelWCS):
             wcs = data.coords
         elif type(data.coords) is Coordinates or data.coords is None:
             wcs = None
         else:
-            raise TypeError('data.coords should be an instance of Coordinates or WCS')
+            raise TypeError('data.coords should be an instance of Coordinates, WCS, or GWCS')
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
