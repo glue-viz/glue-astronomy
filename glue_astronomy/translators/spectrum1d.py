@@ -2,6 +2,7 @@ import numpy as np
 
 from glue.config import data_translator
 from glue.core import Data, Subset
+from glue.core.exceptions import IncompatibleAttribute
 
 from astropy.wcs import WCS
 from astropy import units as u
@@ -108,8 +109,12 @@ class Specutils1DHandler:
                 if subset_state is None:
                     mask = None
                 else:
-                    mask = data.get_mask(subset_state=subset_state)
-                    mask = ~mask
+                    try:
+                        mask = data.get_mask(subset_state=subset_state)
+                        mask = ~mask
+                    except IncompatibleAttribute:
+                        # Like when trying to apply image mask to spectrum
+                        mask = None
 
                 # Collapse values and mask to profile
                 if data.ndim > 1:
