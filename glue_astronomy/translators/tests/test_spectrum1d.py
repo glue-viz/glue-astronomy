@@ -123,23 +123,36 @@ def test_to_spectrum1d_default_attribute():
                                  'keyword argument.')
 
 
-@pytest.mark.parametrize('mode', ('wcs', 'lookup'))
+@pytest.mark.parametrize('mode', ('wcs1d', 'wcs3d', 'lookup'))
 def test_from_spectrum1d(mode):
 
-    if mode == 'wcs':
-        wcs = WCS(naxis=1)
-        wcs.wcs.ctype = ['FREQ']
+    if mode == 'wcs3d':
+        # This test is intended to be run with the version of Spectrum1D based
+        # on NDCube 2.0
+        pytest.importorskip("ndcube", minversion="1.99")
+
+        # Set up simple spatial+spectral WCS
+        wcs = WCS(naxis=3)
+        wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN', 'FREQ']
         wcs.wcs.set()
-        kwargs = {'wcs': wcs}
+        flux = np.ones((4, 4, 5))*u.Unit('Jy')
+        uncertainty = VarianceUncertainty(np.square(flux*0.1))
+        mask = np.zeros((4, 4, 5))
+        kwargs = {'wcs': wcs, 'uncertainty': uncertainty, 'mask': mask}
     else:
+        flux = [2, 3, 4, 5] * u.Jy
+        uncertainty = VarianceUncertainty([0.1, 0.1, 0.1, 0.1] * u.Jy**2)
+        mask = [False, False, False, False]
+        if mode == 'wcs1d':
+            wcs = WCS(naxis=1)
+            wcs.wcs.ctype = ['FREQ']
+            wcs.wcs.set()
+            kwargs = {'wcs': wcs, 'uncertainty': uncertainty, 'mask': mask}
+        else:
+            kwargs = {'spectral_axis': [1, 2, 3, 4] * u.Hz,
+                      'uncertainty': uncertainty, 'mask': mask}
 
-        kwargs = {'spectral_axis': [1, 2, 3, 4] * u.Hz}
-
-    spec = Spectrum1D([2, 3, 4, 5] * u.Jy,
-                      uncertainty=VarianceUncertainty(
-                          [0.1, 0.1, 0.1, 0.1] * u.Jy**2),
-                      mask=[False, False, False, False],
-                      **kwargs)
+    spec = Spectrum1D(flux, **kwargs)
 
     data_collection = DataCollection()
 
@@ -150,13 +163,13 @@ def test_from_spectrum1d(mode):
     assert isinstance(data, Data)
     assert len(data.main_components) == 3
     assert data.main_components[0].label == 'flux'
-    assert_allclose(data['flux'], [2, 3, 4, 5])
+    assert_allclose(data['flux'], flux.value)
     component = data.get_component('flux')
     assert component.units == 'Jy'
 
     # Check uncertainty parsing within glue data object
     assert data.main_components[1].label == 'uncertainty'
-    assert_allclose(data['uncertainty'], [0.1, 0.1, 0.1, 0.1])
+    assert_allclose(data['uncertainty'], uncertainty.array)
     component = data.get_component('uncertainty')
     assert component.units == 'Jy2'
 
@@ -164,13 +177,24 @@ def test_from_spectrum1d(mode):
     spec_new = data.get_object(attribute='flux')
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
-    assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
+    if mode == 'wcs3d':
+        assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+    else:
+        assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
     assert spec_new.uncertainty is None
 
     # Check complete round-tripping, including uncertainties
     spec_new = data.get_object()
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
-    assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
-    assert spec_new.uncertainty is not None
-    assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
+    if mode == 'wcs3d':
+        assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+        assert spec_new.uncertainty is not None
+        print(spec_new.uncertainty)
+        print(uncertainty)
+        assert_quantity_allclose(spec_new.uncertainty.quantity,
+                                 np.ones((5, 4, 4))*0.01*u.Jy**2)
+    else:
+        assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
+        assert spec_new.uncertainty is not None
+        assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)

@@ -7,6 +7,7 @@ from astropy.wcs import WCS
 from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
 from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
+from gwcs import WCS as GWCS
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
@@ -21,26 +22,44 @@ UNCERT_REF = {'std': StdDevUncertainty,
 class Specutils1DHandler:
 
     def to_data(self, obj):
-        coords = SpectralCoordinates(obj.spectral_axis)
-        data = Data(coords=coords)
-        data['flux'] = obj.flux
-        data.get_component('flux').units = str(obj.unit)
+
+        # Glue expects spectral axis first for cubes (opposite of specutils).
+        # Swap the spectral axis to first here. to_object doesn't need this because
+        # Spectrum1D does it automatically on initialization.
+        if len(obj.flux.shape) == 3:
+            data = Data(coords=obj.wcs.swapaxes(-1, 0))
+            data['flux'] = np.swapaxes(obj.flux, -1, 0)
+            data.get_component('flux').units = str(obj.unit)
+        else:
+            # Don't use the dummy GWCS created by Spectrum1D initialized with spectral_axis
+            if isinstance(obj.wcs, GWCS):
+                data = Data(coords=SpectralCoordinates(obj.spectral_axis))
+            else:
+                data = Data(coords=obj.wcs)
+            data['flux'] = obj.flux
+            data.get_component('flux').units = str(obj.unit)
 
         # Include uncertainties if they exist
         if obj.uncertainty is not None:
-            data['uncertainty'] = obj.uncertainty.quantity
+            if len(obj.flux.shape) == 3:
+                data['uncertainty'] = np.swapaxes(obj.uncertainty.quantity, -1, 0)
+            else:
+                data['uncertainty'] = obj.uncertainty.quantity
             data.get_component('uncertainty').units = str(obj.uncertainty.unit)
             data.meta.update({'uncertainty_type': obj.uncertainty.uncertainty_type})
 
         # Include mask if it exists
         if obj.mask is not None:
-            data['mask'] = obj.mask
+            if len(obj.flux.shape) == 3:
+                data['mask'] = np.swapaxes(obj.mask, -1, 0)
+            else:
+                data['mask'] = obj.mask
 
         data.meta.update(obj.meta)
 
         return data
 
-    def to_object(self, data_or_subset, attribute=None, statistic='mean'):
+    def to_object(self, data_or_subset, attribute=None, statistic=None):
         """
         Convert a glue Data object to a Spectrum1D object.
 
@@ -69,14 +88,16 @@ class Specutils1DHandler:
             # Find non-spectral axes
             axes = tuple(i for i in range(data.ndim) if i != spec_axis)
 
-            kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+            if statistic is not None:
+                kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+            else:
+                kwargs = {'wcs': data.coords}
 
         elif isinstance(data.coords, SpectralCoordinates):
 
             kwargs = {'spectral_axis': data.coords.spectral_axis}
 
         else:
-
             raise TypeError('data.coords should be an instance of WCS '
                             'or SpectralCoordinates')
 
@@ -112,7 +133,7 @@ class Specutils1DHandler:
                     mask = ~mask
 
                 # Collapse values and mask to profile
-                if data.ndim > 1:
+                if data.ndim > 1 and statistic is not None:
                     # Get units and attach to value
                     values = data.compute_statistic(statistic, attribute, axis=axes,
                                                     subset_state=subset_state)
