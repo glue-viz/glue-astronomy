@@ -8,6 +8,7 @@ from astropy import units as u
 from astropy.wcs import WCS
 from astropy.tests.helper import assert_quantity_allclose
 from astropy.nddata import VarianceUncertainty
+from astropy.coordinates import SpectralCoord
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
@@ -198,3 +199,54 @@ def test_from_spectrum1d(mode):
         assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
         assert spec_new.uncertainty is not None
         assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
+
+
+
+def test_spectrum1d_2d_data():
+
+    # This test makes sure that 2D spectra represented as Spectrum1D round-trip
+    # Note that Spectrum1D will typically have a 1D spectral WCS even if the
+    # data is N-dimensional, so we need to pad the WCS before passing it to
+    # glue and un-pad it when translating back.
+
+    # We test both the case where the WCS is 2D and the case where it is 1D
+
+    wcs = WCS(naxis=1)
+    wcs.wcs.ctype = ['FREQ']
+    wcs.wcs.set()
+
+    flux = np.ones((10, 15)) * u.Unit('Jy')
+
+    spec = Spectrum1D(flux, wcs=wcs)
+
+    assert spec.data.ndim == 2
+    assert spec.wcs.naxis == 1
+
+    data_collection = DataCollection()
+
+    data_collection['spectrum'] = spec
+
+    data = data_collection['spectrum']
+
+    assert isinstance(data, Data)
+    assert len(data.main_components) == 1
+    assert data.main_components[0].label == 'flux'
+    assert_allclose(data['flux'], flux.value)
+
+    assert data.coords.pixel_n_dim == 2
+    assert data.coords.world_n_dim == 2
+    assert len(data.pixel_component_ids) == 2
+    assert len(data.world_component_ids) == 2
+
+    _, s = data.coords.pixel_to_world(1, 2)
+
+    assert isinstance(s, SpectralCoord)
+
+    # Check round-tripping
+    spec_new = data.get_object()
+    assert isinstance(spec_new, Spectrum1D)
+
+    # The WCS object should be the same
+    assert spec_new.wcs.pixel_n_dim == 1
+    assert spec_new.wcs.world_n_dim == 1
+    assert spec_new.wcs is spec.wcs
