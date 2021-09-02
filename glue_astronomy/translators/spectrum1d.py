@@ -44,35 +44,35 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     @property
     def world_axis_physical_types(self):
-        return [None, self.spectral_wcs.world_axis_physical_types[0]]
+        return [self.spectral_wcs.world_axis_physical_types[0], None]
 
     @property
     def world_axis_units(self):
-        return (None, self.spectral_wcs.world_axis_units[0])
+        return (self.spectral_wcs.world_axis_units[0], None)
 
     def pixel_to_world_values(self, *pixel_arrays):
-        world_arrays = [pixel_arrays[0],
-                        self.spectral_wcs.pixel_to_world_values(pixel_arrays[1])]
+        world_arrays = [self.spectral_wcs.pixel_to_world_values(pixel_arrays[1]),
+                        pixel_arrays[0]]
         return tuple(world_arrays)
 
     def world_to_pixel_values(self, *world_arrays):
-        pixel_arrays = [world_arrays[0],
-                        self.spectral_wcs.world_to_pixel_values(world_arrays[0])]
+        pixel_arrays = [self.spectral_wcs.world_to_pixel_values(world_arrays[0]),
+                        world_arrays[0]]
         return tuple(pixel_arrays)
 
     @property
     def world_axis_object_components(self):
         return [
-            ('spatial', 'value', 'value'),
-            self.spectral_wcs.world_axis_object_components[0]
+            self.spectral_wcs.world_axis_object_components[0],
+            ('spatial', 'value', 'value')
         ]
 
     @property
     def world_axis_object_classes(self):
         spectral_key = self.spectral_wcs.world_axis_object_components[0][0]
         return {
-            'spatial': (u.Quantity, (), {'unit': u.pixel}),
-            spectral_key: self.spectral_wcs.world_axis_object_classes[spectral_key]
+            spectral_key: self.spectral_wcs.world_axis_object_classes[spectral_key],
+            'spatial': (u.Quantity, (), {'unit': u.pixel})
         }
 
     @property
@@ -85,11 +85,11 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     @property
     def pixel_axis_names(self):
-        return tuple(['spatial', self.spectral_wcs.pixel_axis_names[0]])
+        return tuple([self.spectral_wcs.pixel_axis_names[0], 'spatial'])
 
     @property
     def world_axis_names(self):
-        return tuple(['spatial', self.spectral_wcs.world_axis_names[0]])
+        return tuple([self.spectral_wcs.world_axis_names[0], 'spatial'])
 
     @property
     def axis_correlation_matrix(self):

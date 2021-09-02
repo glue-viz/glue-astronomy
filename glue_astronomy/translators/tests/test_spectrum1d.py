@@ -238,7 +238,7 @@ def test_spectrum1d_2d_data():
     assert len(data.pixel_component_ids) == 2
     assert len(data.world_component_ids) == 2
 
-    _, s = data.coords.pixel_to_world(1, 2)
+    s, _ = data.coords.pixel_to_world(1, 2)
 
     assert isinstance(s, SpectralCoord)
 
