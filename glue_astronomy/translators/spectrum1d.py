@@ -159,6 +159,9 @@ class Specutils1DHandler:
             data = data_or_subset
             subset_state = None
 
+        if data.ndim < 2 and statistic is not None:
+            statistic = None
+
         if statistic is None and isinstance(data.coords, BaseHighLevelWCS):
 
             if isinstance(data.coords, PaddedSpectrumWCS):

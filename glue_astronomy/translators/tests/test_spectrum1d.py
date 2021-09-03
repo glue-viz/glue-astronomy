@@ -175,7 +175,7 @@ def test_from_spectrum1d(mode):
     assert component.units == 'Jy2'
 
     # Check round-tripping via single attribute reference
-    spec_new = data.get_object(attribute='flux')
+    spec_new = data.get_object(attribute='flux', statistic=None)
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     if mode == 'wcs3d':
@@ -185,7 +185,7 @@ def test_from_spectrum1d(mode):
     assert spec_new.uncertainty is None
 
     # Check complete round-tripping, including uncertainties
-    spec_new = data.get_object()
+    spec_new = data.get_object(statistic=None)
     assert isinstance(spec_new, Spectrum1D)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     if mode == 'wcs3d':
