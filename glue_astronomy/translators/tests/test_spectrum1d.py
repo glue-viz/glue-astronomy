@@ -242,7 +242,7 @@ def test_spectrum1d_2d_data():
     assert isinstance(s, SpectralCoord)
 
     # Check round-tripping
-    spec_new = data.get_object()
+    spec_new = data.get_object(statistic=None)
     assert isinstance(spec_new, Spectrum1D)
 
     # The WCS object should be the same
