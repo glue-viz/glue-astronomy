@@ -237,6 +237,11 @@ def test_spectrum1d_2d_data():
     assert len(data.pixel_component_ids) == 2
     assert len(data.world_component_ids) == 2
 
+    assert data.coordinate_components[0].label == 'Pixel Axis 0 [y]'
+    assert data.coordinate_components[1].label == 'Pixel Axis 1 [x]'
+    assert data.coordinate_components[2].label == 'Offset'
+    assert data.coordinate_components[3].label == 'Frequency'
+
     s, _ = data.coords.pixel_to_world(1, 2)
 
     assert isinstance(s, SpectralCoord)

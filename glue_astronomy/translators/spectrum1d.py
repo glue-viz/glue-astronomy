@@ -19,6 +19,17 @@ UNCERT_REF = {'std': StdDevUncertainty,
               'ivar': InverseVariance}
 
 
+UCD_TO_SPECTRAL_NAME = {'em.freq': 'Frequency',
+                        'em.energy': 'Energy',
+                        'em.wavenumber': 'Wavenumber',
+                        'em.wl': 'Wavelength',
+                        'spect.dopplerVeloc.radio': 'Velocity',
+                        'spect.dopplerVeloc.opt': 'Velocity',
+                        'spect.dopplerVeloc': 'Velocity',
+                        'src.redshift': 'Redshift',
+                        'custom:spect.doplerVeloc.beta': 'Beta'}
+
+
 class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     # Spectrum1D can use a 1D spectral WCS even for n-dimensional
@@ -87,7 +98,7 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     @property
     def world_axis_names(self):
-        return tuple([self.spectral_wcs.world_axis_names[0], 'spatial'])
+        return (UCD_TO_SPECTRAL_NAME[self.spectral_wcs.world_axis_physical_types[0]], 'Offset')
 
     @property
     def axis_correlation_matrix(self):
@@ -171,7 +182,11 @@ class Specutils1DHandler:
 
         elif statistic is not None:
 
-            if isinstance(data.coords, WCS):
+            if isinstance(data.coords, PaddedSpectrumWCS):
+                spec_axis = 0
+                axes = tuple(range(1, data.ndim))
+                kwargs = {'wcs': data.coords.spectral_wcs}
+            elif isinstance(data.coords, WCS):
 
                 # Find spectral axis
                 spec_axis = data.coords.naxis - 1 - data.coords.wcs.spec
