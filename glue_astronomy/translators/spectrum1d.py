@@ -7,7 +7,8 @@ from astropy.wcs import WCS
 from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
 from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
-from gwcs import WCS as GWCS
+from astropy.wcs.wcsapi.wrappers.base import BaseWCSWrapper
+from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
@@ -16,6 +17,85 @@ from specutils import Spectrum1D
 UNCERT_REF = {'std': StdDevUncertainty,
               'var': VarianceUncertainty,
               'ivar': InverseVariance}
+
+
+class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
+
+    # Spectrum1D can use a 1D spectral WCS even for n-dimensional
+    # datasets while glue always needs the dimensionality to match,
+    # so this class pads the WCS so that it is n-dimensional.
+
+    # NOTE: for now this only handles padding the WCS into 2D WCS. Rather than
+    # generalize this we can just remove this class and use CompoundLowLevelWCS
+    # from NDCube once it is in a released version.
+
+    def __init__(self, wcs):
+        self.spectral_wcs = wcs
+
+    @property
+    def pixel_n_dim(self):
+        return 2
+
+    @property
+    def world_n_dim(self):
+        return 2
+
+    @property
+    def world_axis_physical_types(self):
+        return [self.spectral_wcs.world_axis_physical_types[0], None]
+
+    @property
+    def world_axis_units(self):
+        return (self.spectral_wcs.world_axis_units[0], None)
+
+    def pixel_to_world_values(self, *pixel_arrays):
+        world_arrays = [self.spectral_wcs.pixel_to_world_values(pixel_arrays[1]),
+                        pixel_arrays[0]]
+        return tuple(world_arrays)
+
+    def world_to_pixel_values(self, *world_arrays):
+        pixel_arrays = [self.spectral_wcs.world_to_pixel_values(world_arrays[0]),
+                        world_arrays[0]]
+        return tuple(pixel_arrays)
+
+    @property
+    def world_axis_object_components(self):
+        return [
+            self.spectral_wcs.world_axis_object_components[0],
+            ('spatial', 'value', 'value')
+        ]
+
+    @property
+    def world_axis_object_classes(self):
+        spectral_key = self.spectral_wcs.world_axis_object_components[0][0]
+        return {
+            spectral_key: self.spectral_wcs.world_axis_object_classes[spectral_key],
+            'spatial': (u.Quantity, (), {'unit': u.pixel})
+        }
+
+    @property
+    def pixel_shape(self):
+        return None
+
+    @property
+    def pixel_bounds(self):
+        return None
+
+    @property
+    def pixel_axis_names(self):
+        return tuple([self.spectral_wcs.pixel_axis_names[0], 'spatial'])
+
+    @property
+    def world_axis_names(self):
+        return tuple([self.spectral_wcs.world_axis_names[0], 'spatial'])
+
+    @property
+    def axis_correlation_matrix(self):
+        return np.identity(2).astype('bool')
+
+    @property
+    def serialized_classes(self):
+        return False
 
 
 @data_translator(Spectrum1D)
@@ -31,9 +111,8 @@ class Specutils1DHandler:
             data['flux'] = np.swapaxes(obj.flux, -1, 0)
             data.get_component('flux').units = str(obj.unit)
         else:
-            # Don't use the dummy GWCS created by Spectrum1D initialized with spectral_axis
-            if isinstance(obj.wcs, GWCS):
-                data = Data(coords=SpectralCoordinates(obj.spectral_axis))
+            if obj.flux.ndim == 2 and obj.wcs.world_n_dim == 1:
+                data = Data(coords=PaddedSpectrumWCS(obj.wcs))
             else:
                 data = Data(coords=obj.wcs)
             data['flux'] = obj.flux
@@ -80,18 +159,30 @@ class Specutils1DHandler:
             data = data_or_subset
             subset_state = None
 
-        if isinstance(data.coords, WCS):
+        if data.ndim < 2 and statistic is not None:
+            statistic = None
 
-            # Find spectral axis
-            spec_axis = data.coords.naxis - 1 - data.coords.wcs.spec
+        if statistic is None and isinstance(data.coords, BaseHighLevelWCS):
 
-            # Find non-spectral axes
-            axes = tuple(i for i in range(data.ndim) if i != spec_axis)
-
-            if statistic is not None:
-                kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+            if isinstance(data.coords, PaddedSpectrumWCS):
+                kwargs = {'wcs': data.coords.spectral_wcs}
             else:
                 kwargs = {'wcs': data.coords}
+
+        elif statistic is not None:
+
+            if isinstance(data.coords, WCS):
+
+                # Find spectral axis
+                spec_axis = data.coords.naxis - 1 - data.coords.wcs.spec
+
+                # Find non-spectral axes
+                axes = tuple(i for i in range(data.ndim) if i != spec_axis)
+
+                kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+
+            else:
+                raise ValueError('Can only use statistic= if the Data object has a FITS WCS')
 
         elif isinstance(data.coords, SpectralCoordinates):
 
