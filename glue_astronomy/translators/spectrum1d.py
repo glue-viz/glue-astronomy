@@ -8,7 +8,7 @@ from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
 from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
 from astropy.wcs.wcsapi.wrappers.base import BaseWCSWrapper
-from astropy.wcs.wcsapi import HighLevelWCSMixin
+from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
 
 from gwcs import WCS as GWCS
 
@@ -161,22 +161,27 @@ class Specutils1DHandler:
             data = data_or_subset
             subset_state = None
 
-        if isinstance(data.coords, WCS):
+        if statistic is None and isinstance(data.coords, BaseHighLevelWCS):
 
-            # Find spectral axis
-            spec_axis = data.coords.naxis - 1 - data.coords.wcs.spec
-
-            # Find non-spectral axes
-            axes = tuple(i for i in range(data.ndim) if i != spec_axis)
-
-            if statistic is not None:
-                kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+            if isinstance(data.coords, PaddedSpectrumWCS):
+                kwargs = {'wcs': data.coords.spectral_wcs}
             else:
                 kwargs = {'wcs': data.coords}
 
-        elif isinstance(data.coords, PaddedSpectrumWCS):
+        elif statistic is not None:
 
-            kwargs = {'wcs': data.coords.spectral_wcs}
+            if isinstance(data.coords, WCS):
+
+                # Find spectral axis
+                spec_axis = data.coords.naxis - 1 - data.coords.wcs.spec
+
+                # Find non-spectral axes
+                axes = tuple(i for i in range(data.ndim) if i != spec_axis)
+
+                kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+
+            else:
+                raise ValueError('Can only use statistic= if the Data object has a FITS WCS')
 
         elif isinstance(data.coords, SpectralCoordinates):
 
