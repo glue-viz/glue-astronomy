@@ -201,7 +201,6 @@ def test_from_spectrum1d(mode):
         assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
 
 
-
 def test_spectrum1d_2d_data():
 
     # This test makes sure that 2D spectra represented as Spectrum1D round-trip

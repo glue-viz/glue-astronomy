@@ -10,8 +10,6 @@ from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertain
 from astropy.wcs.wcsapi.wrappers.base import BaseWCSWrapper
 from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
 
-from gwcs import WCS as GWCS
-
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
 from specutils import Spectrum1D
