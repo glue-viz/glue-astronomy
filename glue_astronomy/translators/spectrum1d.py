@@ -62,13 +62,18 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         return (self.spectral_wcs.world_axis_units[0], None)
 
     def pixel_to_world_values(self, *pixel_arrays):
+        # The ravel and reshape are needed because of
+        # https://github.com/astropy/astropy/issues/12154
         px = np.array(pixel_arrays[0])
         world_arrays = [self.spectral_wcs.pixel_to_world_values(px.ravel()).reshape(px.shape),
                         pixel_arrays[1]]
         return tuple(world_arrays)
 
     def world_to_pixel_values(self, *world_arrays):
-        pixel_arrays = [self.spectral_wcs.world_to_pixel_values(world_arrays[0]),
+        # The ravel and reshape are needed because of
+        # https://github.com/astropy/astropy/issues/12154
+        wx = np.array(world_arrays[0])
+        pixel_arrays = [self.spectral_wcs.world_to_pixel_values(wx.ravel()).reshape(wx.shape),
                         world_arrays[1]]
         return tuple(pixel_arrays)
 
