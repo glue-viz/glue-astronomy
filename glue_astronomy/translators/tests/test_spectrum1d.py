@@ -212,9 +212,10 @@ def test_spectrum1d_2d_data():
 
     wcs = WCS(naxis=1)
     wcs.wcs.ctype = ['FREQ']
+    wcs.wcs.cdelt = [10]
     wcs.wcs.set()
 
-    flux = np.ones((10, 15)) * u.Unit('Jy')
+    flux = np.ones((3, 2)) * u.Unit('Jy')
 
     spec = Spectrum1D(flux, wcs=wcs)
 
@@ -242,11 +243,18 @@ def test_spectrum1d_2d_data():
     assert data.coordinate_components[2].label == 'Offset'
     assert data.coordinate_components[3].label == 'Frequency'
 
-    s, _ = data.coords.pixel_to_world(1, 2)
+    assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
+    assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
 
+    s, o = data.coords.pixel_to_world(1, 2)
     assert isinstance(s, SpectralCoord)
 
-    # Check round-tripping
+    # Check round-tripping of coordinates
+    px, py = data.coords.world_to_pixel(s, o)
+    assert_allclose(px, 1)
+    assert_allclose(py, 2)
+
+    # Check round-tripping of translation
     spec_new = data.get_object(statistic=None)
     assert isinstance(spec_new, Spectrum1D)
 

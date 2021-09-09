@@ -62,13 +62,14 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         return (self.spectral_wcs.world_axis_units[0], None)
 
     def pixel_to_world_values(self, *pixel_arrays):
-        world_arrays = [self.spectral_wcs.pixel_to_world_values(pixel_arrays[1]),
-                        pixel_arrays[0]]
+        px = np.array(pixel_arrays[0])
+        world_arrays = [self.spectral_wcs.pixel_to_world_values(px.ravel()).reshape(px.shape),
+                        pixel_arrays[1]]
         return tuple(world_arrays)
 
     def world_to_pixel_values(self, *world_arrays):
         pixel_arrays = [self.spectral_wcs.world_to_pixel_values(world_arrays[0]),
-                        world_arrays[0]]
+                        world_arrays[1]]
         return tuple(pixel_arrays)
 
     @property
