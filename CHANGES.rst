@@ -1,4 +1,4 @@
-0.3.1 (unreleased)
+0.3.1 (2021-09-09)
 ------------------
 
 - Fixed coordinate conversion for 2D spectra. [#47]
