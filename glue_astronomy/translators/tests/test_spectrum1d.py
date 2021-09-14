@@ -217,7 +217,7 @@ def test_spectrum1d_2d_data():
 
     flux = np.ones((3, 2)) * u.Unit('Jy')
 
-    spec = Spectrum1D(flux, wcs=wcs)
+    spec = Spectrum1D(flux, wcs=wcs, meta={'instrument': 'spamcam'})
 
     assert spec.data.ndim == 2
     assert spec.wcs.naxis == 1
@@ -262,3 +262,6 @@ def test_spectrum1d_2d_data():
     assert spec_new.wcs.pixel_n_dim == 1
     assert spec_new.wcs.world_n_dim == 1
     assert spec_new.wcs is spec.wcs
+
+    # The metadata should still be present
+    assert spec_new.meta['instrument'] == 'spamcam'

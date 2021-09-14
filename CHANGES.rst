@@ -1,4 +1,9 @@
-0.3.1 (2021-09-09)
+0.3.2 (2021-09-09)
+------------------
+
+- Fixed round-tripping of metadata in Spectrum1D. [#48]
+
+0.3.1 (unreleased)
 ------------------
 
 - Fixed coordinate conversion for 2D spectra. [#47]
