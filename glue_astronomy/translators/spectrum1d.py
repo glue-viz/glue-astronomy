@@ -217,6 +217,9 @@ class Specutils1DHandler:
             raise TypeError('data.coords should be an instance of WCS '
                             'or SpectralCoordinates')
 
+        # Copy over metadata
+        kwargs['meta'] = data.meta.copy()
+
         if isinstance(attribute, str):
             attribute = data.id[attribute]
         elif len(data.main_components) == 0:
