@@ -11,6 +11,7 @@ from astropy.wcs import WCSSUB_SPECTRAL
 from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
 from astropy.wcs.wcsapi.wrappers.base import BaseWCSWrapper
 from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
+from astropy.wcs.wcsapi.fitswcs import SlicedFITSWCS
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
@@ -126,7 +127,11 @@ class Specutils1DHandler:
         # Swap the spectral axis to first here. to_object doesn't need this because
         # Spectrum1D does it automatically on initialization.
         if len(obj.flux.shape) == 3:
-            data = Data(coords=obj.wcs.swapaxes(-1, 0))
+            if isinstance(obj.wcs, SlicedFITSWCS):
+                obj_wcs = obj.wcs
+            else:
+                obj_wcs = obj.wcs.swapaxes(-1, 0)
+            data = Data(coords=obj_wcs)
             data['flux'] = np.swapaxes(obj.flux, -1, 0)
             data.get_component('flux').units = str(obj.unit)
         else:
