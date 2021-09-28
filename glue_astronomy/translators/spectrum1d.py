@@ -128,11 +128,11 @@ class Specutils1DHandler:
         # Spectrum1D does it automatically on initialization.
         if len(obj.flux.shape) == 3:
             if isinstance(obj.wcs, SlicedFITSWCS):
-                obj_wcs = obj.wcs
+                data = Data(coords=obj.wcs)
+                data['flux'] = obj.flux
             else:
-                obj_wcs = obj.wcs.swapaxes(-1, 0)
-            data = Data(coords=obj_wcs)
-            data['flux'] = np.swapaxes(obj.flux, -1, 0)
+                data = Data(coords=obj.wcs.swapaxes(-1, 0))
+                data['flux'] = np.swapaxes(obj.flux, -1, 0)
             data.get_component('flux').units = str(obj.unit)
         else:
             if obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
