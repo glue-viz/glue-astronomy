@@ -85,8 +85,8 @@ class SpectralCubeHandler:
 
         return cls(values, mask=mask, wcs=wcs, meta=data.meta)
 
-datatranslator(SpectralCube, SpectralCubeHandler)
-datatranslator(DaskSpectralCube, SpectralCubeHandler)
+data_translator(SpectralCube, SpectralCubeHandler)
+data_translator(DaskSpectralCube, SpectralCubeHandler)
 
 
 @data_translator(VaryingResolutionSpectralCube)
@@ -101,4 +101,4 @@ class VaryingResolutionSpectralCubeHandler(SpectralCubeHandler):
         return super().to_object(data_or_subset, attribute=attribute, cls=cls,
                                  beams=data_or_subset.meta['beams'])
 
-datatranslator(DaskVaryingResolutionSpectralCube, VaryingResolutionSpectralCubeHandler)
+data_translator(DaskVaryingResolutionSpectralCube, VaryingResolutionSpectralCubeHandler)
