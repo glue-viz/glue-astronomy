@@ -228,10 +228,11 @@ class Specutils1DHandler:
             if len(data.main_components) == 1:
                 attribute = data.main_components[0]
             # If no specific attribute is defined, attempt to retrieve
-            #  both the flux and uncertainties
+            # the flux and uncertainty, if available
             elif any([x.label in ('flux', 'uncertainty') for x in data.components]):
-                attribute = [data.find_component_id('flux'),
-                             data.find_component_id('uncertainty')]
+                attribute = [data.find_component_id(x)
+                             for x in ('flux', 'uncertainty')
+                             if data.find_component_id(x) is not None]
             else:
                 raise ValueError("Data object has more than one attribute, so "
                                  "you will need to specify which one to use as "
