@@ -37,13 +37,13 @@ class CCDDataHandler:
             data = data_or_subset
             subset_state = None
 
-        has_gwcs = False
+        has_fitswcs = False
         if isinstance(data.coords, WCS):
+            has_fitswcs = True
             wcs = data.coords
         elif type(data.coords) is Coordinates or data.coords is None:
             wcs = None
         elif isinstance(data.coords, BaseHighLevelWCS):
-            has_gwcs = True
             wcs = data.coords
         else:
             raise TypeError('data.coords should be an instance of Coordinates or WCS')
@@ -78,7 +78,7 @@ class CCDDataHandler:
 
         values = values * u.Unit(component.units)
 
-        if not has_gwcs:
+        if has_fitswcs:
             result = CCDData(values, mask=mask, wcs=wcs, meta=data.meta)
         else:
             # https://github.com/astropy/astropy/issues/11727
