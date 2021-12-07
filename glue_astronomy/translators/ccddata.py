@@ -37,14 +37,15 @@ class CCDDataHandler:
             data = data_or_subset
             subset_state = None
 
-        has_fitswcs = False
         if isinstance(data.coords, WCS):
             has_fitswcs = True
             wcs = data.coords
-        elif type(data.coords) is Coordinates or data.coords is None:
-            wcs = None
         elif isinstance(data.coords, BaseHighLevelWCS):
+            has_fitswcs = False
             wcs = data.coords
+        elif type(data.coords) is Coordinates or data.coords is None:
+            has_fitswcs = True  # For backward compatibility
+            wcs = None
         else:
             raise TypeError('data.coords should be an instance of Coordinates or WCS')
 
