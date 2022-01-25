@@ -126,7 +126,10 @@ class Specutils1DHandler:
         # Swap the spectral axis to first here. to_object doesn't need this because
         # Spectrum1D does it automatically on initialization.
         if len(obj.flux.shape) == 3:
-            data = Data(coords=obj.wcs.swapaxes(-1, 0))
+            # It's possible to have a 3D Spectrum1D with only a spectral axis defined
+            # rather than a full WCS, in which case we don't need to swap the WCS
+            if obj.wcs.world_n_dim == 3:
+                data = Data(coords=obj.wcs.swapaxes(-1, 0))
             data['flux'] = np.swapaxes(obj.flux, -1, 0)
             data.get_component('flux').units = str(obj.unit)
         else:
