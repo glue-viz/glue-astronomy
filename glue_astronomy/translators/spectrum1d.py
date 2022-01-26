@@ -125,8 +125,12 @@ class Specutils1DHandler:
         if data.ndim < 2 and statistic is not None:
             statistic = None
 
+        manual_swap = None
+
         if statistic is None and isinstance(data.coords, PaddedSpectrumWCS):
             kwargs = {'wcs': data.coords.spectral_wcs}
+            if data.ndim > 1:
+                manual_swap = True
         elif statistic is None and isinstance(data.coords, BaseHighLevelWCS):
             kwargs = {'wcs': data.coords}
 
@@ -202,6 +206,9 @@ class Specutils1DHandler:
                         mask = np.all(mask, collapse_axes)
                 else:
                     values = data.get_data(attribute)
+                    if manual_swap:
+                        # In this case we need to move the spectral axis back to last
+                        values = np.swapaxes(values, -1, 0)
 
                 attribute_label = attribute.label
 
