@@ -10,8 +10,7 @@ from astropy.wcs import WCS
 from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
 from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
-from astropy.wcs.wcsapi.wrappers.base import BaseWCSWrapper
-from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
+from astropy.wcs.wcsapi import BaseHighLevelWCS
 from astropy.modeling import models
 
 from ndcube.wcs.wrappers import CompoundLowLevelWCS
@@ -41,11 +40,11 @@ class PaddedSpectrumWCS(CompoundLowLevelWCS):
     def __init__(self, spectral_wcs, n_extra_axes):
         self.spectral_wcs = spectral_wcs
         frame1 = CoordinateFrame(n_extra_axes, ['SPATIAL']*n_extra_axes,
-                                np.arange(n_extra_axes), unit=[u.pix]*n_extra_axes,
-                                name="Dummy1")
+                                 np.arange(n_extra_axes), unit=[u.pix]*n_extra_axes,
+                                 name="Dummy1")
         frame2 = CoordinateFrame(n_extra_axes, ['SPATIAL']*n_extra_axes,
-                                np.arange(n_extra_axes), unit=[u.pix]*n_extra_axes,
-                                name="Dummy2")
+                                 np.arange(n_extra_axes), unit=[u.pix]*n_extra_axes,
+                                 name="Dummy2")
         frame2frame = models.Multiply(1)
         if n_extra_axes > 1:
             for i in range(n_extra_axes-1):
@@ -128,7 +127,7 @@ class Specutils1DHandler:
 
         if statistic is None and isinstance(data.coords, PaddedSpectrumWCS):
             kwargs = {'wcs': data.coords.spectral_wcs}
-        elif statistic is None and  isinstance(data.coords, BaseHighLevelWCS):
+        elif statistic is None and isinstance(data.coords, BaseHighLevelWCS):
             kwargs = {'wcs': data.coords}
 
         elif statistic is not None:
