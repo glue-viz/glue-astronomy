@@ -1,4 +1,5 @@
 import pytest
+import warnings
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
@@ -125,7 +126,7 @@ def test_to_spectrum1d_default_attribute():
 
 
 @pytest.mark.parametrize('mode', ('wcs1d', 'wcs3d', 'lookup'))
-def test_from_spectrum1d(mode):
+def test_from_spectrum1d(mode, recwarn):
 
     if mode == 'wcs3d':
         # This test is intended to be run with the version of Spectrum1D based
@@ -195,10 +196,16 @@ def test_from_spectrum1d(mode):
         print(uncertainty)
         assert_quantity_allclose(spec_new.uncertainty.quantity,
                                  np.ones((5, 4, 4))*0.01*u.Jy**2)
+
+        assert len(recwarn) == 3
+        for w in recwarn:
+            assert issubclass(w.category, UserWarning)
+            assert "Input WCS indicates that the spectral axis is not last." in str(w.message)
     else:
         assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
         assert spec_new.uncertainty is not None
         assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
+        assert len(recwarn) == 0
 
 
 def test_spectrum1d_2d_data():
@@ -207,6 +214,7 @@ def test_spectrum1d_2d_data():
     # Note that Spectrum1D will typically have a 1D spectral WCS even if the
     # data is N-dimensional, so we need to pad the WCS before passing it to
     # glue and un-pad it when translating back.
+    # Also Spectrum1D.flux has the spectral axis along last dimension, not first.
 
     # We test both the case where the WCS is 2D and the case where it is 1D
 
@@ -215,7 +223,7 @@ def test_spectrum1d_2d_data():
     wcs.wcs.cdelt = [10]
     wcs.wcs.set()
 
-    flux = np.ones((3, 2)) * u.Unit('Jy')
+    flux = np.arange(1, 7).reshape((3, 2)) * u.Unit('Jy')
 
     spec = Spectrum1D(flux, wcs=wcs, meta={'instrument': 'spamcam'})
 
@@ -231,7 +239,7 @@ def test_spectrum1d_2d_data():
     assert isinstance(data, Data)
     assert len(data.main_components) == 1
     assert data.main_components[0].label == 'flux'
-    assert_allclose(data['flux'], flux.value)
+    assert_allclose(data['flux'], flux.value.swapaxes(-1, 0))
 
     assert data.coords.pixel_n_dim == 2
     assert data.coords.world_n_dim == 2
@@ -240,11 +248,12 @@ def test_spectrum1d_2d_data():
 
     assert data.coordinate_components[0].label == 'Pixel Axis 0 [y]'
     assert data.coordinate_components[1].label == 'Pixel Axis 1 [x]'
-    assert data.coordinate_components[2].label == 'Offset'
-    assert data.coordinate_components[3].label == 'Frequency'
+    assert data.coordinate_components[2].label == 'World 0'
+    assert data.coordinate_components[3].label == 'World 1'
 
-    assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
-    assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
+    assert_equal(data['World 0'], [[10, 10, 10], [10, 10, 10]])
+    assert data['World 1'].shape == (2, 3)
+    assert_equal(data['World 1'], [[20, 20, 20], [20, 20, 20]])
 
     s, o = data.coords.pixel_to_world(1, 2)
     assert isinstance(s, SpectralCoord)
