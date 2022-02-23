@@ -1,0 +1,8 @@
+include LICENSE
+include README.rst
+include CHANGES.rst
+
+include setup.cfg
+include pyproject.toml
+
+global-exclude *.pyc *.o
