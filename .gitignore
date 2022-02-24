@@ -2,25 +2,38 @@
 build
 docs/_build
 docs/api
-glue/tests/htmlcov
 *.coverage
 *htmlcov*
 
 # Packages/installer info
-docs/.eggs
+*.egg
 *.egg-info
 dist
+build
+eggs
+.eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+distribute-*.tar.gz
+MANIFEST
+glue_astronomy/version.py
+pip-wheel-metadata/
 
 # Compiled files
-*.pyc
-
-# Other generated files
-glue/_githash.py
+*.py[cod]
+*.a
+*.o
+*.so
+*.pyd
+__pycache__
 
 # Other
 .pylintrc
 *.ropeproject
-glue/qt/glue_qt_resources.py
 *.__junk*
 *.orig
 *~
@@ -31,6 +44,9 @@ glue/qt/glue_qt_resources.py
 
 # PyCharm
 .idea
+
+# VS code
+.vscode
 
 # Eclipse editor project files
 .project
@@ -43,3 +59,8 @@ glue/qt/glue_qt_resources.py
 
 .tox
 .html
+
+# Env
+.venv
+venv
+.env

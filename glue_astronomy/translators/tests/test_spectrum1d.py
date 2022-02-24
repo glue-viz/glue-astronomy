@@ -9,6 +9,7 @@ from astropy.wcs import WCS
 from astropy.tests.helper import assert_quantity_allclose
 from astropy.nddata import VarianceUncertainty
 from astropy.coordinates import SpectralCoord
+from astropy.utils.exceptions import AstropyUserWarning
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
@@ -124,6 +125,7 @@ def test_to_spectrum1d_default_attribute():
                                  'keyword argument.')
 
 
+@pytest.mark.filterwarnings('ignore:Input WCS indicates that the spectral axis is not last')
 @pytest.mark.parametrize('mode', ('wcs1d', 'wcs3d', 'lookup'))
 def test_from_spectrum1d(mode):
 
@@ -250,7 +252,8 @@ def test_spectrum1d_2d_data():
     assert isinstance(s, SpectralCoord)
 
     # Check round-tripping of coordinates
-    px, py = data.coords.world_to_pixel(s, o)
+    with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+        px, py = data.coords.world_to_pixel(s, o)
     assert_allclose(px, 1)
     assert_allclose(py, 2)
 

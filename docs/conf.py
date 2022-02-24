@@ -3,7 +3,8 @@
 # Glue documentation build configuration file
 
 import os
-from pkg_resources import get_distribution
+
+from glue_astronomy import __version__
 
 # -- General configuration ----------------------------------------------------
 
@@ -57,7 +58,10 @@ copyright = u'2019, Thomas Robitaille'
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
-version = release = get_distribution('glue-core').version
+# The full version, including alpha/beta/rc tags.
+release = __version__
+# The short X.Y version.
+version = '.'.join(release.split('.')[:2])
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
