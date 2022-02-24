@@ -12,7 +12,6 @@ def test_identifier_fits():
 
 
 def test_identifier_casa():
-    pytest.importorskip('casatools')
     assert is_spectral_cube(get_pkg_data_filename('data/cube_3d.image'))
 
 
@@ -38,7 +37,6 @@ def test_reader_fits_4d_fullstokes():
 
 
 def test_reader_casa():
-    pytest.importorskip('casatools')
     data = read_spectral_cube(get_pkg_data_filename('data/cube_3d.image'))
     assert isinstance(data['STOKES I'], np.ndarray)
     assert data.shape == (2, 3, 4)
