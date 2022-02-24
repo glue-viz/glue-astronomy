@@ -42,24 +42,25 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
     # generalize this we can just remove this class and use CompoundLowLevelWCS
     # from NDCube once it is in a released version.
 
-    def __init__(self, wcs):
+    def __init__(self, wcs, ndim):
         self.spectral_wcs = wcs
+        self.flux_ndim = ndim
 
     @property
     def pixel_n_dim(self):
-        return 2
+        return self.flux_ndim
 
     @property
     def world_n_dim(self):
-        return 2
+        return self.flux_ndim
 
     @property
     def world_axis_physical_types(self):
-        return [self.spectral_wcs.world_axis_physical_types[0], None]
+        return [self.spectral_wcs.world_axis_physical_types[0], *[None]*(self.flux_ndim-1)]
 
     @property
     def world_axis_units(self):
-        return (self.spectral_wcs.world_axis_units[0], None)
+        return (self.spectral_wcs.world_axis_units[0], *[None]*(self.flux_ndim-1))
 
     def pixel_to_world_values(self, *pixel_arrays):
         # The ravel and reshape are needed because of
@@ -81,7 +82,7 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
     def world_axis_object_components(self):
         return [
             self.spectral_wcs.world_axis_object_components[0],
-            ('spatial', 'value', 'value')
+            *[('spatial', 'value', 'value')]*(self.flux_ndim-1)
         ]
 
     @property
@@ -102,15 +103,20 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     @property
     def pixel_axis_names(self):
-        return tuple([self.spectral_wcs.pixel_axis_names[0], 'spatial'])
+        return tuple([self.spectral_wcs.pixel_axis_names[0], *['spatial']*(self.flux_ndim-1)])
 
     @property
     def world_axis_names(self):
-        return (UCD_TO_SPECTRAL_NAME[self.spectral_wcs.world_axis_physical_types[0]], 'Offset')
+        if self.flux_ndim == 2:
+            names = ['Offset']
+        else:
+            names = [f"Offset{i}" for i in range(0, self.flux_ndim-1)]
+
+        return (UCD_TO_SPECTRAL_NAME[self.spectral_wcs.world_axis_physical_types[0]], *names)
 
     @property
     def axis_correlation_matrix(self):
-        return np.identity(2).astype('bool')
+        return np.identity(self.flux_ndim).astype('bool')
 
     @property
     def serialized_classes(self):
@@ -133,7 +139,7 @@ class Specutils1DHandler:
             if obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
                 data = Data(coords=SpectralCoordinates(obj.spectral_axis))
             elif obj.flux.ndim == 2 and obj.wcs.world_n_dim == 1:
-                data = Data(coords=PaddedSpectrumWCS(obj.wcs))
+                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
             else:
                 data = Data(coords=obj.wcs)
             data['flux'] = obj.flux
