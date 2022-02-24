@@ -131,15 +131,17 @@ class Specutils1DHandler:
         # Glue expects spectral axis first for cubes (opposite of specutils).
         # Swap the spectral axis to first here. to_object doesn't need this because
         # Spectrum1D does it automatically on initialization.
-        if len(obj.flux.shape) == 3:
-            data = Data(coords=obj.wcs.swapaxes(-1, 0))
-            data['flux'] = np.swapaxes(obj.flux, -1, 0)
-            data.get_component('flux').units = str(obj.unit)
-        else:
-            if obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
-                data = Data(coords=SpectralCoordinates(obj.spectral_axis))
-            elif obj.flux.ndim == 2 and obj.wcs.world_n_dim == 1:
+        if obj.flux.ndim > 1:
+            if obj.wcs.world_n_dim == 1:
                 data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
+                data['flux'] = np.swapaxes(obj.flux, -1, 0)
+            else:
+                data = Data(coords=obj.wcs.swapaxes(-1, 0))
+                data['flux'] = np.swapaxes(obj.flux, -1, 0)
+                data.get_component('flux').units = str(obj.unit)
+        else:
+            if obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
+                data = Data(coords=SpectralCoordinates(obj.spectral_axis))
             else:
                 data = Data(coords=obj.wcs)
             data['flux'] = obj.flux
