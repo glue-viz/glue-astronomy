@@ -1,6 +1,5 @@
 import numpy as np
-import pytest
-from astropy.utils.data import get_pkg_data_filename
+from astropy.utils.data import get_pkg_data_filename, get_pkg_data_path
 from glue.qglue import parse_data
 from spectral_cube import SpectralCube
 
@@ -12,7 +11,7 @@ def test_identifier_fits():
 
 
 def test_identifier_casa():
-    assert is_spectral_cube(get_pkg_data_filename('data/cube_3d.image'))
+    assert is_spectral_cube(get_pkg_data_path('data/cube_3d.image'))
 
 
 def test_reader_fits():
@@ -37,8 +36,9 @@ def test_reader_fits_4d_fullstokes():
 
 
 def test_reader_casa():
-    data = read_spectral_cube(get_pkg_data_filename('data/cube_3d.image'))
-    assert isinstance(data['STOKES I'], np.ndarray)
+    from dask import array as dask_array
+    data = read_spectral_cube(get_pkg_data_path('data/cube_3d.image'))
+    assert isinstance(data['STOKES I'], dask_array.Array)
     assert data.shape == (2, 3, 4)
 
 
