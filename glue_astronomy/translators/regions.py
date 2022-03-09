@@ -1,12 +1,12 @@
 from glue.config import subset_state_translator
-from glue.core.subset import RoiSubsetState, RangeSubsetState, OrState, AndState,\
-                             XorState, MultiOrState, Subset, MultiRangeSubsetState
-from glue.core.roi import RectangularROI, PolygonalROI, CircularROI, PointROI,\
-                          RangeROI, AbstractMplRoi, EllipticalROI
+from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState, AndState,
+                              XorState, MultiOrState, Subset, MultiRangeSubsetState)
+from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, PointROI,
+                           RangeROI, AbstractMplRoi, EllipticalROI)
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
-from regions import RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,\
-                    PointPixelRegion, PixCoord, EllipsePixelRegion
+from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
+                     PointPixelRegion, PixCoord, EllipsePixelRegion)
 
 
 def range_to_rect(data, ori, low, high):
@@ -82,7 +82,8 @@ class AstropyRegionsHandler:
             elif isinstance(roi, CircularROI):
                 return CirclePixelRegion(PixCoord(*roi.get_center()), roi.get_radius())
             elif isinstance(roi, EllipticalROI):
-                return EllipsePixelRegion(PixCoord(roi.xc, roi.yc), roi.radius_x, roi.radius_y)
+                return EllipsePixelRegion(
+                    PixCoord(roi.xc, roi.yc), roi.radius_x * 2, roi.radius_y * 2)
             elif isinstance(roi, PointROI):
                 return PointPixelRegion(PixCoord(*roi.center()))
             elif isinstance(roi, RangeROI):

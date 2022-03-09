@@ -1,3 +1,9 @@
+0.3.3 (unreleased)
+------------------
+
+- Fixed translation to ``regions.EllipsePixelRegion``. Previous translation
+  was passing in radii as full height/width of the ellipse. [#67]
+
 0.3.2 (2021-09-14)
 ------------------
 
