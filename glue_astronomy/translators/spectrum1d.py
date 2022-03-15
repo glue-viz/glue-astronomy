@@ -205,7 +205,7 @@ class Specutils1DHandler:
 
             if isinstance(data.coords, PaddedSpectrumWCS):
                 spec_axis = 0
-                axes = tuple(range(1, data.ndim))
+                axes = tuple(range(0, data.ndim-1))
                 kwargs = {'wcs': data.coords.spectral_wcs}
             elif isinstance(data.coords, WCS):
 
@@ -269,7 +269,7 @@ class Specutils1DHandler:
                     values = data.compute_statistic(statistic, attribute, axis=axes,
                                                     subset_state=subset_state)
                     if mask is not None:
-                        collapse_axes = tuple([x for x in range(1, data.ndim)])
+                        collapse_axes = tuple([x for x in range(0, data.ndim-1)])
                         mask = np.all(mask, collapse_axes)
                 else:
                     values = data.get_data(attribute)
