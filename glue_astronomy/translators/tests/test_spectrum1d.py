@@ -166,13 +166,13 @@ def test_from_spectrum1d(mode):
     assert isinstance(data, Data)
     assert len(data.main_components) == 3
     assert data.main_components[0].label == 'flux'
-    assert_allclose(data['flux'], flux.value)
+    assert_allclose(data['flux'], spec.flux.value)
     component = data.get_component('flux')
     assert component.units == 'Jy'
 
     # Check uncertainty parsing within glue data object
     assert data.main_components[1].label == 'uncertainty'
-    assert_allclose(data['uncertainty'], uncertainty.array)
+    assert_allclose(data['uncertainty'], spec.uncertainty.array)
     component = data.get_component('uncertainty')
     assert component.units == 'Jy2'
 

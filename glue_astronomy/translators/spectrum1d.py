@@ -134,13 +134,10 @@ class Specutils1DHandler:
         if obj.flux.ndim > 1:
             if obj.wcs.world_n_dim == 1:
                 data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
-                #data['flux'] = np.swapaxes(obj.flux, -1, 0)
                 obj.flux
             else:
                 data = Data(coords=obj.wcs)
                 data['flux'] = obj.flux
-                #data = Data(coords=obj.wcs.swapaxes(-1, 0))
-                #data['flux'] = np.swapaxes(obj.flux, -1, 0)
                 data.get_component('flux').units = str(obj.unit)
         else:
             if obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
@@ -152,19 +149,13 @@ class Specutils1DHandler:
 
         # Include uncertainties if they exist
         if obj.uncertainty is not None:
-            if len(obj.flux.shape) == 3:
-                data['uncertainty'] = np.swapaxes(obj.uncertainty.quantity, -1, 0)
-            else:
-                data['uncertainty'] = obj.uncertainty.quantity
+            data['uncertainty'] = obj.uncertainty.quantity
             data.get_component('uncertainty').units = str(obj.uncertainty.unit)
             data.meta.update({'uncertainty_type': obj.uncertainty.uncertainty_type})
 
         # Include mask if it exists
         if obj.mask is not None:
-            if len(obj.flux.shape) == 3:
-                data['mask'] = np.swapaxes(obj.mask, -1, 0)
-            else:
-                data['mask'] = obj.mask
+            data['mask'] = obj.mask
 
         data.meta.update(obj.meta)
 
