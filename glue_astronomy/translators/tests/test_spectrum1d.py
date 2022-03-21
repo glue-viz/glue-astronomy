@@ -247,6 +247,8 @@ def test_spectrum1d_2d_data(spec_ndim):
         assert data.coordinate_components[1].label == 'Pixel Axis 1 [x]'
         assert data.coordinate_components[2].label == 'Offset'
         assert data.coordinate_components[3].label == 'Frequency'
+        assert data.coords.pixel_axis_names == ('', 'spatial')
+
         assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
         assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
 
@@ -266,6 +268,7 @@ def test_spectrum1d_2d_data(spec_ndim):
         assert data.coordinate_components[3].label == 'Offset1'
         assert data.coordinate_components[4].label == 'Offset0'
         assert data.coordinate_components[5].label == 'Frequency'
+        assert data.coords.pixel_axis_names == ('', 'spatial0', 'spatial1')
 
         assert_equal(data['Offset1'], [[[0, 0], [0, 0], [0, 0]],
                                        [[1, 1], [1, 1], [1, 1]],
@@ -286,6 +289,9 @@ def test_spectrum1d_2d_data(spec_ndim):
         assert_allclose(px, 1)
         assert_allclose(py, 2)
         assert_allclose(pz, 0)
+
+    assert data.coords.world_axis_units == ('Hz', *(None,)*(spec_ndim-1))
+    assert data.coords.world_axis_physical_types == ['em.freq', *(None,)*(spec_ndim-1)]
 
     # Check round-tripping of translation
     spec_new = data.get_object(statistic=None)

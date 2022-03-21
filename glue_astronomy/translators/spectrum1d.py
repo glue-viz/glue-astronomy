@@ -105,7 +105,7 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     @property
     def pixel_axis_names(self):
-        return tuple([self.spectral_wcs.pixel_axis_names[0], *['spatial']*(self.flux_ndim-1)])
+        return tuple([self.spectral_wcs.pixel_axis_names[0], *self.spatial_keys])
 
     @property
     def world_axis_names(self):
