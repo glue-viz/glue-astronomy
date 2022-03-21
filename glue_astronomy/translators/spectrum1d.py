@@ -38,9 +38,7 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
     # datasets while glue always needs the dimensionality to match,
     # so this class pads the WCS so that it is n-dimensional.
 
-    # NOTE: for now this only handles padding the WCS into 2D WCS. Rather than
-    # generalize this we can just remove this class and use CompoundLowLevelWCS
-    # from NDCube once it is in a released version.
+    # NOTE: This class could be updated to use CompoundLowLevelWCS from NDCube.
 
     def __init__(self, wcs, ndim):
         self.spectral_wcs = wcs
@@ -134,7 +132,7 @@ class Specutils1DHandler:
         if obj.flux.ndim > 1:
             if obj.wcs.world_n_dim == 1:
                 data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
-                obj.flux
+                data['flux'] = obj.flux
             else:
                 data = Data(coords=obj.wcs)
                 data['flux'] = obj.flux

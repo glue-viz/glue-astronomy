@@ -193,8 +193,6 @@ def test_from_spectrum1d(mode):
     if mode == 'wcs3d':
         assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
         assert spec_new.uncertainty is not None
-        print(spec_new.uncertainty)
-        print(uncertainty)
         assert_quantity_allclose(spec_new.uncertainty.quantity,
                                  np.ones((5, 4, 4))*0.01*u.Jy**2)
     else:
