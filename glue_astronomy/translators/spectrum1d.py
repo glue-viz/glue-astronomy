@@ -44,6 +44,11 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         self.spectral_wcs = wcs
         self.flux_ndim = ndim
 
+        if self.flux_ndim == 2:
+            self.spatial_keys = ['spatial']
+        else:
+            self.spatial_keys = [f"spatial{i}" for i in range(0, self.flux_ndim-1)]
+
     @property
     def pixel_n_dim(self):
         return self.flux_ndim
@@ -65,7 +70,7 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         # https://github.com/astropy/astropy/issues/12154
         px = np.array(pixel_arrays[0])
         world_arrays = [self.spectral_wcs.pixel_to_world_values(px.ravel()).reshape(px.shape),
-                        pixel_arrays[1]]
+                        *pixel_arrays[1:]]
         return tuple(world_arrays)
 
     def world_to_pixel_values(self, *world_arrays):
@@ -73,23 +78,23 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         # https://github.com/astropy/astropy/issues/12154
         wx = np.array(world_arrays[0])
         pixel_arrays = [self.spectral_wcs.world_to_pixel_values(wx.ravel()).reshape(wx.shape),
-                        world_arrays[1]]
+                        *world_arrays[1:]]
         return tuple(pixel_arrays)
 
     @property
     def world_axis_object_components(self):
-        return [
-            self.spectral_wcs.world_axis_object_components[0],
-            *[('spatial', 'value', 'value')]*(self.flux_ndim-1)
-        ]
+        return [self.spectral_wcs.world_axis_object_components[0],
+                *[(key, 'value', 'value') for key in self.spatial_keys]
+               ]
 
     @property
     def world_axis_object_classes(self):
         spectral_key = self.spectral_wcs.world_axis_object_components[0][0]
-        return {
-            spectral_key: self.spectral_wcs.world_axis_object_classes[spectral_key],
-            'spatial': (u.Quantity, (), {'unit': u.pixel})
-        }
+        obj_classes = {spectral_key: self.spectral_wcs.world_axis_object_classes[spectral_key]}
+        for key in self.spatial_keys:
+            obj_classes[key] = (u.Quantity, (), {'unit': u.pixel})
+
+        return obj_classes
 
     @property
     def pixel_shape(self):
