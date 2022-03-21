@@ -84,8 +84,7 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
     @property
     def world_axis_object_components(self):
         return [self.spectral_wcs.world_axis_object_components[0],
-                *[(key, 'value', 'value') for key in self.spatial_keys]
-               ]
+                *[(key, 'value', 'value') for key in self.spatial_keys]]
 
     @property
     def world_axis_object_classes(self):

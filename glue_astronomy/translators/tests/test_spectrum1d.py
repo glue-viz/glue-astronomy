@@ -200,6 +200,7 @@ def test_from_spectrum1d(mode):
         assert spec_new.uncertainty is not None
         assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
 
+
 @pytest.mark.parametrize('spec_ndim', (2, 3))
 def test_spectrum1d_2d_data(spec_ndim):
 
@@ -248,6 +249,16 @@ def test_spectrum1d_2d_data(spec_ndim):
         assert data.coordinate_components[3].label == 'Frequency'
         assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
         assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
+
+        s, o = data.coords.pixel_to_world(1, 2)
+        assert isinstance(s, SpectralCoord)
+
+        # Check round-tripping of coordinates
+        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+            px, py = data.coords.world_to_pixel(s, o)
+        assert_allclose(px, 1)
+        assert_allclose(py, 2)
+
     elif spec_ndim == 3:
         assert data.coordinate_components[0].label == 'Pixel Axis 0 [z]'
         assert data.coordinate_components[1].label == 'Pixel Axis 1 [y]'
@@ -256,18 +267,25 @@ def test_spectrum1d_2d_data(spec_ndim):
         assert data.coordinate_components[4].label == 'Offset0'
         assert data.coordinate_components[5].label == 'Frequency'
 
-        assert_equal(data['Offset1'], [[0, 0], [1, 1], [2, 2]])
-        assert_equal(data['Offset0'], [[0, 0], [1, 1], [2, 2]])
-        assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
+        assert_equal(data['Offset1'], [[[0, 0], [0, 0], [0, 0]],
+                                       [[1, 1], [1, 1], [1, 1]],
+                                       [[2, 2], [2, 2], [2, 2]]])
+        assert_equal(data['Offset0'], [[[0, 0], [1, 1], [2, 2]],
+                                       [[0, 0], [1, 1], [2, 2]],
+                                       [[0, 0], [1, 1], [2, 2]]])
+        assert_equal(data['Frequency'], [[[10, 20], [10, 20], [10, 20]],
+                                         [[10, 20], [10, 20], [10, 20]],
+                                         [[10, 20], [10, 20], [10, 20]]])
 
-    s, o = data.coords.pixel_to_world(1, 2)
-    assert isinstance(s, SpectralCoord)
+        s, o1, o2 = data.coords.pixel_to_world(1, 2, 0)
+        assert isinstance(s, SpectralCoord)
 
-    # Check round-tripping of coordinates
-    with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
-        px, py = data.coords.world_to_pixel(s, o)
-    assert_allclose(px, 1)
-    assert_allclose(py, 2)
+        # Check round-tripping of coordinates
+        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+            px, py, pz = data.coords.world_to_pixel(s, o1, o2)
+        assert_allclose(px, 1)
+        assert_allclose(py, 2)
+        assert_allclose(pz, 0)
 
     # Check round-tripping of translation
     spec_new = data.get_object(statistic=None)
