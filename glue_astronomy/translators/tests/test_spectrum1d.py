@@ -200,8 +200,8 @@ def test_from_spectrum1d(mode):
         assert spec_new.uncertainty is not None
         assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
 
-
-def test_spectrum1d_2d_data():
+@pytest.mark.parametrize('spec_ndim', (2, 3))
+def test_spectrum1d_2d_data(spec_ndim):
 
     # This test makes sure that 2D spectra represented as Spectrum1D round-trip
     # Note that Spectrum1D will typically have a 1D spectral WCS even if the
@@ -215,11 +215,14 @@ def test_spectrum1d_2d_data():
     wcs.wcs.cdelt = [10]
     wcs.wcs.set()
 
-    flux = np.ones((3, 2)) * u.Unit('Jy')
+    if spec_ndim == 2:
+        flux = np.ones((3, 2)) * u.Unit('Jy')
+    elif spec_ndim == 3:
+        flux = np.ones((3, 3, 2)) * u.Unit('Jy')
 
     spec = Spectrum1D(flux, wcs=wcs, meta={'instrument': 'spamcam'})
 
-    assert spec.data.ndim == 2
+    assert spec.data.ndim == spec_ndim
     assert spec.wcs.naxis == 1
 
     data_collection = DataCollection()
@@ -233,18 +236,29 @@ def test_spectrum1d_2d_data():
     assert data.main_components[0].label == 'flux'
     assert_allclose(data['flux'], flux.value)
 
-    assert data.coords.pixel_n_dim == 2
-    assert data.coords.world_n_dim == 2
-    assert len(data.pixel_component_ids) == 2
-    assert len(data.world_component_ids) == 2
+    assert data.coords.pixel_n_dim == spec_ndim
+    assert data.coords.world_n_dim == spec_ndim
+    assert len(data.pixel_component_ids) == spec_ndim
+    assert len(data.world_component_ids) == spec_ndim
 
-    assert data.coordinate_components[0].label == 'Pixel Axis 0 [y]'
-    assert data.coordinate_components[1].label == 'Pixel Axis 1 [x]'
-    assert data.coordinate_components[2].label == 'Offset'
-    assert data.coordinate_components[3].label == 'Frequency'
+    if spec_ndim == 2:
+        assert data.coordinate_components[0].label == 'Pixel Axis 0 [y]'
+        assert data.coordinate_components[1].label == 'Pixel Axis 1 [x]'
+        assert data.coordinate_components[2].label == 'Offset'
+        assert data.coordinate_components[3].label == 'Frequency'
+        assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
+        assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
+    elif spec_ndim == 3:
+        assert data.coordinate_components[0].label == 'Pixel Axis 0 [z]'
+        assert data.coordinate_components[1].label == 'Pixel Axis 1 [y]'
+        assert data.coordinate_components[2].label == 'Pixel Axis 2 [x]'
+        assert data.coordinate_components[3].label == 'Offset1'
+        assert data.coordinate_components[4].label == 'Offset0'
+        assert data.coordinate_components[5].label == 'Frequency'
 
-    assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
-    assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
+        assert_equal(data['Offset1'], [[0, 0], [1, 1], [2, 2]])
+        assert_equal(data['Offset0'], [[0, 0], [1, 1], [2, 2]])
+        assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
 
     s, o = data.coords.pixel_to_world(1, 2)
     assert isinstance(s, SpectralCoord)
