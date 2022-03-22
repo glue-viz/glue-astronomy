@@ -1,8 +1,10 @@
-0.3.3 (unreleased)
+0.3.3 (2022-03-22)
 ------------------
 
 - Fixed translation to ``regions.EllipsePixelRegion``. Previous translation
   was passing in radii as full height/width of the ellipse. [#67]
+
+- Fixed compatibility of CCDData translator with GWCS. [#58]
 
 0.3.2 (2021-09-14)
 ------------------
