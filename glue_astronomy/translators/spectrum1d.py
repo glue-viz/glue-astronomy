@@ -38,35 +38,39 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
     # datasets while glue always needs the dimensionality to match,
     # so this class pads the WCS so that it is n-dimensional.
 
-    # NOTE: for now this only handles padding the WCS into 2D WCS. Rather than
-    # generalize this we can just remove this class and use CompoundLowLevelWCS
-    # from NDCube once it is in a released version.
+    # NOTE: This class could be updated to use CompoundLowLevelWCS from NDCube.
 
-    def __init__(self, wcs):
+    def __init__(self, wcs, ndim):
         self.spectral_wcs = wcs
+        self.flux_ndim = ndim
+
+        if self.flux_ndim == 2:
+            self.spatial_keys = ['spatial']
+        else:
+            self.spatial_keys = [f"spatial{i}" for i in range(0, self.flux_ndim-1)]
 
     @property
     def pixel_n_dim(self):
-        return 2
+        return self.flux_ndim
 
     @property
     def world_n_dim(self):
-        return 2
+        return self.flux_ndim
 
     @property
     def world_axis_physical_types(self):
-        return [self.spectral_wcs.world_axis_physical_types[0], None]
+        return [self.spectral_wcs.world_axis_physical_types[0], *[None]*(self.flux_ndim-1)]
 
     @property
     def world_axis_units(self):
-        return (self.spectral_wcs.world_axis_units[0], None)
+        return (self.spectral_wcs.world_axis_units[0], *[None]*(self.flux_ndim-1))
 
     def pixel_to_world_values(self, *pixel_arrays):
         # The ravel and reshape are needed because of
         # https://github.com/astropy/astropy/issues/12154
         px = np.array(pixel_arrays[0])
         world_arrays = [self.spectral_wcs.pixel_to_world_values(px.ravel()).reshape(px.shape),
-                        pixel_arrays[1]]
+                        *pixel_arrays[1:]]
         return tuple(world_arrays)
 
     def world_to_pixel_values(self, *world_arrays):
@@ -74,23 +78,22 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         # https://github.com/astropy/astropy/issues/12154
         wx = np.array(world_arrays[0])
         pixel_arrays = [self.spectral_wcs.world_to_pixel_values(wx.ravel()).reshape(wx.shape),
-                        world_arrays[1]]
+                        *world_arrays[1:]]
         return tuple(pixel_arrays)
 
     @property
     def world_axis_object_components(self):
-        return [
-            self.spectral_wcs.world_axis_object_components[0],
-            ('spatial', 'value', 'value')
-        ]
+        return [self.spectral_wcs.world_axis_object_components[0],
+                *[(key, 'value', 'value') for key in self.spatial_keys]]
 
     @property
     def world_axis_object_classes(self):
         spectral_key = self.spectral_wcs.world_axis_object_components[0][0]
-        return {
-            spectral_key: self.spectral_wcs.world_axis_object_classes[spectral_key],
-            'spatial': (u.Quantity, (), {'unit': u.pixel})
-        }
+        obj_classes = {spectral_key: self.spectral_wcs.world_axis_object_classes[spectral_key]}
+        for key in self.spatial_keys:
+            obj_classes[key] = (u.Quantity, (), {'unit': u.pixel})
+
+        return obj_classes
 
     @property
     def pixel_shape(self):
@@ -102,15 +105,20 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     @property
     def pixel_axis_names(self):
-        return tuple([self.spectral_wcs.pixel_axis_names[0], 'spatial'])
+        return tuple([self.spectral_wcs.pixel_axis_names[0], *self.spatial_keys])
 
     @property
     def world_axis_names(self):
-        return (UCD_TO_SPECTRAL_NAME[self.spectral_wcs.world_axis_physical_types[0]], 'Offset')
+        if self.flux_ndim == 2:
+            names = ['Offset']
+        else:
+            names = [f"Offset{i}" for i in range(0, self.flux_ndim-1)]
+
+        return (UCD_TO_SPECTRAL_NAME[self.spectral_wcs.world_axis_physical_types[0]], *names)
 
     @property
     def axis_correlation_matrix(self):
-        return np.identity(2).astype('bool')
+        return np.identity(self.flux_ndim).astype('bool')
 
     @property
     def serialized_classes(self):
@@ -125,15 +133,17 @@ class Specutils1DHandler:
         # Glue expects spectral axis first for cubes (opposite of specutils).
         # Swap the spectral axis to first here. to_object doesn't need this because
         # Spectrum1D does it automatically on initialization.
-        if len(obj.flux.shape) == 3:
-            data = Data(coords=obj.wcs.swapaxes(-1, 0))
-            data['flux'] = np.swapaxes(obj.flux, -1, 0)
-            data.get_component('flux').units = str(obj.unit)
+        if obj.flux.ndim > 1:
+            if obj.wcs.world_n_dim == 1:
+                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
+                data['flux'] = obj.flux
+            else:
+                data = Data(coords=obj.wcs)
+                data['flux'] = obj.flux
+                data.get_component('flux').units = str(obj.unit)
         else:
-            if obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
+            if obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
                 data = Data(coords=SpectralCoordinates(obj.spectral_axis))
-            elif obj.flux.ndim == 2 and obj.wcs.world_n_dim == 1:
-                data = Data(coords=PaddedSpectrumWCS(obj.wcs))
             else:
                 data = Data(coords=obj.wcs)
             data['flux'] = obj.flux
@@ -141,19 +151,13 @@ class Specutils1DHandler:
 
         # Include uncertainties if they exist
         if obj.uncertainty is not None:
-            if len(obj.flux.shape) == 3:
-                data['uncertainty'] = np.swapaxes(obj.uncertainty.quantity, -1, 0)
-            else:
-                data['uncertainty'] = obj.uncertainty.quantity
+            data['uncertainty'] = obj.uncertainty.quantity
             data.get_component('uncertainty').units = str(obj.uncertainty.unit)
             data.meta.update({'uncertainty_type': obj.uncertainty.uncertainty_type})
 
         # Include mask if it exists
         if obj.mask is not None:
-            if len(obj.flux.shape) == 3:
-                data['mask'] = np.swapaxes(obj.mask, -1, 0)
-            else:
-                data['mask'] = obj.mask
+            data['mask'] = obj.mask
 
         data.meta.update(obj.meta)
 
@@ -194,7 +198,7 @@ class Specutils1DHandler:
 
             if isinstance(data.coords, PaddedSpectrumWCS):
                 spec_axis = 0
-                axes = tuple(range(1, data.ndim))
+                axes = tuple(range(0, data.ndim-1))
                 kwargs = {'wcs': data.coords.spectral_wcs}
             elif isinstance(data.coords, WCS):
 
@@ -258,7 +262,7 @@ class Specutils1DHandler:
                     values = data.compute_statistic(statistic, attribute, axis=axes,
                                                     subset_state=subset_state)
                     if mask is not None:
-                        collapse_axes = tuple([x for x in range(1, data.ndim)])
+                        collapse_axes = tuple([x for x in range(0, data.ndim-1)])
                         mask = np.all(mask, collapse_axes)
                 else:
                     values = data.get_data(attribute)

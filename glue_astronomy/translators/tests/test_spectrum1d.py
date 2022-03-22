@@ -166,13 +166,13 @@ def test_from_spectrum1d(mode):
     assert isinstance(data, Data)
     assert len(data.main_components) == 3
     assert data.main_components[0].label == 'flux'
-    assert_allclose(data['flux'], flux.value)
+    assert_allclose(data['flux'], spec.flux.value)
     component = data.get_component('flux')
     assert component.units == 'Jy'
 
     # Check uncertainty parsing within glue data object
     assert data.main_components[1].label == 'uncertainty'
-    assert_allclose(data['uncertainty'], uncertainty.array)
+    assert_allclose(data['uncertainty'], spec.uncertainty.array)
     component = data.get_component('uncertainty')
     assert component.units == 'Jy2'
 
@@ -193,8 +193,6 @@ def test_from_spectrum1d(mode):
     if mode == 'wcs3d':
         assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
         assert spec_new.uncertainty is not None
-        print(spec_new.uncertainty)
-        print(uncertainty)
         assert_quantity_allclose(spec_new.uncertainty.quantity,
                                  np.ones((5, 4, 4))*0.01*u.Jy**2)
     else:
@@ -203,7 +201,8 @@ def test_from_spectrum1d(mode):
         assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
 
 
-def test_spectrum1d_2d_data():
+@pytest.mark.parametrize('spec_ndim', (2, 3))
+def test_spectrum1d_2d_data(spec_ndim):
 
     # This test makes sure that 2D spectra represented as Spectrum1D round-trip
     # Note that Spectrum1D will typically have a 1D spectral WCS even if the
@@ -217,11 +216,14 @@ def test_spectrum1d_2d_data():
     wcs.wcs.cdelt = [10]
     wcs.wcs.set()
 
-    flux = np.ones((3, 2)) * u.Unit('Jy')
+    if spec_ndim == 2:
+        flux = np.ones((3, 2)) * u.Unit('Jy')
+    elif spec_ndim == 3:
+        flux = np.ones((3, 3, 2)) * u.Unit('Jy')
 
     spec = Spectrum1D(flux, wcs=wcs, meta={'instrument': 'spamcam'})
 
-    assert spec.data.ndim == 2
+    assert spec.data.ndim == spec_ndim
     assert spec.wcs.naxis == 1
 
     data_collection = DataCollection()
@@ -235,27 +237,61 @@ def test_spectrum1d_2d_data():
     assert data.main_components[0].label == 'flux'
     assert_allclose(data['flux'], flux.value)
 
-    assert data.coords.pixel_n_dim == 2
-    assert data.coords.world_n_dim == 2
-    assert len(data.pixel_component_ids) == 2
-    assert len(data.world_component_ids) == 2
+    assert data.coords.pixel_n_dim == spec_ndim
+    assert data.coords.world_n_dim == spec_ndim
+    assert len(data.pixel_component_ids) == spec_ndim
+    assert len(data.world_component_ids) == spec_ndim
 
-    assert data.coordinate_components[0].label == 'Pixel Axis 0 [y]'
-    assert data.coordinate_components[1].label == 'Pixel Axis 1 [x]'
-    assert data.coordinate_components[2].label == 'Offset'
-    assert data.coordinate_components[3].label == 'Frequency'
+    if spec_ndim == 2:
+        assert data.coordinate_components[0].label == 'Pixel Axis 0 [y]'
+        assert data.coordinate_components[1].label == 'Pixel Axis 1 [x]'
+        assert data.coordinate_components[2].label == 'Offset'
+        assert data.coordinate_components[3].label == 'Frequency'
+        assert data.coords.pixel_axis_names == ('', 'spatial')
 
-    assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
-    assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
+        assert_equal(data['Offset'], [[0, 0], [1, 1], [2, 2]])
+        assert_equal(data['Frequency'], [[10, 20], [10, 20], [10, 20]])
 
-    s, o = data.coords.pixel_to_world(1, 2)
-    assert isinstance(s, SpectralCoord)
+        s, o = data.coords.pixel_to_world(1, 2)
+        assert isinstance(s, SpectralCoord)
 
-    # Check round-tripping of coordinates
-    with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
-        px, py = data.coords.world_to_pixel(s, o)
-    assert_allclose(px, 1)
-    assert_allclose(py, 2)
+        # Check round-tripping of coordinates
+        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+            px, py = data.coords.world_to_pixel(s, o)
+        assert_allclose(px, 1)
+        assert_allclose(py, 2)
+
+    elif spec_ndim == 3:
+        assert data.coordinate_components[0].label == 'Pixel Axis 0 [z]'
+        assert data.coordinate_components[1].label == 'Pixel Axis 1 [y]'
+        assert data.coordinate_components[2].label == 'Pixel Axis 2 [x]'
+        assert data.coordinate_components[3].label == 'Offset1'
+        assert data.coordinate_components[4].label == 'Offset0'
+        assert data.coordinate_components[5].label == 'Frequency'
+        assert data.coords.pixel_axis_names == ('', 'spatial0', 'spatial1')
+
+        assert_equal(data['Offset1'], [[[0, 0], [0, 0], [0, 0]],
+                                       [[1, 1], [1, 1], [1, 1]],
+                                       [[2, 2], [2, 2], [2, 2]]])
+        assert_equal(data['Offset0'], [[[0, 0], [1, 1], [2, 2]],
+                                       [[0, 0], [1, 1], [2, 2]],
+                                       [[0, 0], [1, 1], [2, 2]]])
+        assert_equal(data['Frequency'], [[[10, 20], [10, 20], [10, 20]],
+                                         [[10, 20], [10, 20], [10, 20]],
+                                         [[10, 20], [10, 20], [10, 20]]])
+
+        s, o1, o2 = data.coords.pixel_to_world(1, 2, 0)
+        assert isinstance(s, SpectralCoord)
+
+        # Check round-tripping of coordinates
+        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+            px, py, pz = data.coords.world_to_pixel(s, o1, o2)
+        assert_allclose(px, 1)
+        assert_allclose(py, 2)
+        assert_allclose(pz, 0)
+
+    assert data.coords.world_axis_units == ('Hz', *(None,)*(spec_ndim-1))
+    assert data.coords.world_axis_physical_types == ['em.freq', *(None,)*(spec_ndim-1)]
 
     # Check round-tripping of translation
     spec_new = data.get_object(statistic=None)

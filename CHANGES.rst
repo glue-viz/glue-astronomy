@@ -1,3 +1,10 @@
+0.4.0 (unreleased)
+------------------
+
+- Updated ``Spectrum1D`` translator to generate dummy WCS when needed for any
+  dimensionality, and to preserve specutils axis order when translating
+  to Glue ``Data``. [#68]
+
 0.3.3 (2022-03-22)
 ------------------
 
