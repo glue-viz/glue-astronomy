@@ -31,9 +31,10 @@ jobs:
         - linux: py39-test
         - linux: py310-test-dev
 
-        - windows: py37-test
-        - macos: py38-test
+        - macos: py37-test
+        - windows: py38-test
         - windows: py39-test-dev
+        - macos: py310-test-dev
 
         # Doctest
         - linux: py39-docs
