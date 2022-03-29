@@ -42,7 +42,6 @@ jobs:
         - windows: py38-test
         - windows: py39-test-dev
         - macos: py310-test-dev
-          PLAT: arm64
 
   publish:
     needs: tests
@@ -52,4 +51,3 @@ jobs:
       test_command: pytest --pyargs glue_astronomy
     secrets:
       pypi_token: ${{ secrets.pypi_token }}
-
