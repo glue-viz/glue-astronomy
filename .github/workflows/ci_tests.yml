@@ -1,0 +1,38 @@
+name: CI Tests
+
+on:
+  push:
+    branches:
+    - main
+    tags:
+    - '*'
+  pull_request:
+
+jobs:
+  tests:
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      coverage: codecov
+      libraries: |
+        apt:
+          - libxkbcommon-x11-0
+          - libgfortran5
+        brew:
+          - enchant
+
+      envs: |
+        # Code style
+        - linux: codestyle
+          coverage: false
+
+        # Standard tests
+        - linux: py37-test
+        - linux: py38-test
+        - linux: py39-test
+        - linux: py310-test-dev
+
+        - macos: py37-test
+        - windows: py38-test
+        - windows: py39-test-dev
+        - macos: py310-test-dev
+          PLAT: arm64
