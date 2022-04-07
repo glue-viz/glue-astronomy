@@ -5,8 +5,8 @@ Astronomy plugins for glue
    :target: https://glue-astronomy.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://dev.azure.com/glue-viz/glue-astronomy/_apis/build/status/glue-viz.glue-astronomy?branchName=main
-   :target: https://dev.azure.com/glue-viz/glue-astronomy/_build/latest?definitionId=9&branchName=main
+.. image:: https://github.com/glue-viz/glue-astronomy/actions/workflows/main.yml/badge.svg
+   :target: https://github.com/glue-viz/glue-astronomy/actions/workflows/main.yml
    :alt: CI Status
 
 .. image:: https://codecov.io/gh/glue-viz/glue-astronomy/branch/main/graph/badge.svg
