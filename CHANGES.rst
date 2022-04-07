@@ -1,4 +1,4 @@
-0.4.0 (unreleased)
+0.4.0 (2022-04-07)
 ------------------
 
 - Updated ``Spectrum1D`` translator to generate dummy WCS when needed for any
