@@ -17,7 +17,8 @@ class TraceHandler:
             The Trace object to convert
         """
         data = Data(x=obj.image[0], y=obj.trace)
-        data.meta.update(obj.meta)
+        if hasattr(obj, 'meta'):
+            data.meta.update(obj.meta)
         data.meta['Trace'] = obj
         return data
 

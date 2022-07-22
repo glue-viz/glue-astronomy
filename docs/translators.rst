@@ -20,6 +20,9 @@ data classes. At this time, the following data classes are supported:
 * :class:`~astropy.nddata.CCDData` for spectra (from the `astropy.nddata
   <https://docs.astropy.org/en/stable/nddata/>`_ sub-package)
 
+* :class `~specreduce.tracing.Trace` for 2D spectral traces (from the `specreduce
+  <https://specreduce.readthedocs.io>`_ package)
+
 Working with these classes is described in `Datasets and subsets`_ below. In
 addition, this plugin defines ways for glue selections to be translated to
 Astropy `regions <https://astropy-regions.readthedocs.io>`_, as described in
