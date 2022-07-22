@@ -15,6 +15,7 @@ from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState,
                               AndState, XorState, MultiOrState, MultiRangeSubsetState)
 
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
+from glue import __version__ as glue_version
 
 
 class TestAstropyRegions:
@@ -74,28 +75,30 @@ class TestAstropyRegions:
         assert_equal(reg.center.y, 3.5)
         assert_equal(reg.radius, 0.75)
 
-    def test_ellipse_roi(self):
+    @pytest.mark.parametrize('theta', (0, 0.1, -0.5 * np.pi))
+    def test_ellipse_roi(self, theta):
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      EllipticalROI(1, 3.5, 0.75, 5))
+        if theta != 0 and tuple(glue_version.split('.')[:2]) < ('1', '5'):
+            with pytest.raises(NotImplementedError, match='Rotated ellipses are not yet supported'):
+                RoiSubsetState(self.data.pixel_component_ids[1],
+                               self.data.pixel_component_ids[0],
+                               EllipticalROI(1, 3.5, 0.75, 5, theta))
+        else:
+            subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
+                                          self.data.pixel_component_ids[0],
+                                          EllipticalROI(1, 3.5, 0.75, 5, theta or None))
 
-        self.dc.new_subset_group(subset_state=subset_state, label='ellipse')
+            self.dc.new_subset_group(subset_state=subset_state, label='ellipse')
 
-        reg = self.data.get_selection_definition(format='astropy-regions')
+            reg = self.data.get_selection_definition(format='astropy-regions')
 
-        assert isinstance(reg, EllipsePixelRegion)
+            assert isinstance(reg, EllipsePixelRegion)
 
-        assert_equal(reg.center.x, 1)
-        assert_equal(reg.center.y, 3.5)
-        assert_equal(reg.width, 1.5)
-        assert_equal(reg.height, 10)
-        assert_quantity_allclose(reg.angle, 0 * u.deg)
-
-        with pytest.raises(NotImplementedError, match='Rotated ellipses are not yet supported'):
-            RoiSubsetState(self.data.pixel_component_ids[1],
-                           self.data.pixel_component_ids[0],
-                           EllipticalROI(1, 3.5, 0.75, 5, 0.1))
+            assert_equal(reg.center.x, 1)
+            assert_equal(reg.center.y, 3.5)
+            assert_equal(reg.width, 1.5)
+            assert_equal(reg.height, 10)
+            assert_quantity_allclose(reg.angle, theta * u.radian)
 
     def test_point_roi(self):
 
