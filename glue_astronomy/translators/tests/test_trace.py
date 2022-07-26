@@ -14,6 +14,7 @@ def test_trace():
     data_collection['trace'] = trace
     data = data_collection['trace']
     assert isinstance(data, Data)
+    assert data['y'] == trace.trace
 
     trace_from_data = data.get_object()
     assert isinstance(trace_from_data, tracing.FlatTrace)
