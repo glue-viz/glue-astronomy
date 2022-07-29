@@ -1,7 +1,9 @@
+import numpy as np
+
 from glue.config import data_translator
 from glue.core import Data, Subset
 
-from specreduce.tracing import Trace
+from specreduce.tracing import Trace, ArrayTrace
 
 
 @data_translator(Trace)
@@ -39,4 +41,13 @@ class TraceHandler:
         if not isinstance(data.meta.get('Trace'), Trace):
             raise TypeError("data is not of a valid specreduce Trace object")
 
-        return data.meta['Trace']
+        trace = data.meta['Trace']
+        trace_x = np.asarray(trace.image[0])
+        # NOTE: glue does not allow changing the shape of data components, so we can assume
+        # these arrays are still the appropriate length
+        if not np.all(trace_x == data['x']):
+            raise ValueError("x-values have changed")
+        if not np.all(trace.trace[1] == data['y']):
+            trace = ArrayTrace(trace.image, data['y'])
+
+        return trace
