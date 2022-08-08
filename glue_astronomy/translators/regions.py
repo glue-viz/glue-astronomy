@@ -72,7 +72,7 @@ class AstropyRegionsHandler:
         if isinstance(subset_state, RoiSubsetState):
 
             roi = subset_state.roi
-            angle = (getattr(roi, 'theta', 0) * u.radian).to(u.deg)
+            angle = getattr(roi, 'theta', 0) * u.radian
             if isinstance(roi, RectangularROI):
                 xcen = 0.5 * (roi.xmin + roi.xmax)
                 ycen = 0.5 * (roi.ymin + roi.ymax)

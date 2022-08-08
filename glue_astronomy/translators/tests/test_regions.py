@@ -390,7 +390,8 @@ class TestAstropyRegions:
         and_region = self.data.get_selection_definition(subset_id='and', format='astropy-regions')
         or_region = self.data.get_selection_definition(subset_id='or', format='astropy-regions')
         xor_region = self.data.get_selection_definition(subset_id='xor', format='astropy-regions')
-        multior_region = self.data.get_selection_definition(subset_id='multior', format='astropy-regions')
+        multior_region = self.data.get_selection_definition(subset_id='multior',
+                                                            format='astropy-regions')
 
         for reg in and_region, or_region, xor_region, multior_region:
             assert isinstance(reg, CompoundPixelRegion)
