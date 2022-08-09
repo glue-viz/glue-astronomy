@@ -3,6 +3,7 @@ import numpy as np
 from astropy import units as u
 from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from packaging.version import Version
 
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
                      EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion, PixCoord)
@@ -78,7 +79,7 @@ class TestAstropyRegions:
     @pytest.mark.parametrize('theta', (0, 0.1, -0.5 * np.pi))
     def test_ellipse_roi(self, theta):
 
-        if theta != 0 and tuple(glue_version.split('.')[:2]) < ('1', '5'):
+        if theta != 0 and Version(glue_version) < Version('1.5'):
             with pytest.raises(NotImplementedError, match='Rotated ellipses are not yet supported'):
                 RoiSubsetState(self.data.pixel_component_ids[1],
                                self.data.pixel_component_ids[0],
