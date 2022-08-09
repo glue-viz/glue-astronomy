@@ -5,6 +5,7 @@ from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, PointROI,
                            RangeROI, AbstractMplRoi, EllipticalROI)
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
+from astropy import units as u
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
                      PointPixelRegion, PixCoord, EllipsePixelRegion)
 
@@ -71,19 +72,20 @@ class AstropyRegionsHandler:
         if isinstance(subset_state, RoiSubsetState):
 
             roi = subset_state.roi
+            angle = getattr(roi, 'theta', 0) * u.radian
             if isinstance(roi, RectangularROI):
                 xcen = 0.5 * (roi.xmin + roi.xmax)
                 ycen = 0.5 * (roi.ymin + roi.ymax)
                 width = roi.xmax - roi.xmin
                 height = roi.ymax - roi.ymin
-                return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
+                return RectanglePixelRegion(PixCoord(xcen, ycen), width, height, angle=angle)
             elif isinstance(roi, PolygonalROI):
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
             elif isinstance(roi, CircularROI):
                 return CirclePixelRegion(PixCoord(*roi.get_center()), roi.get_radius())
             elif isinstance(roi, EllipticalROI):
                 return EllipsePixelRegion(
-                    PixCoord(roi.xc, roi.yc), roi.radius_x * 2, roi.radius_y * 2)
+                    PixCoord(roi.xc, roi.yc), roi.radius_x * 2, roi.radius_y * 2, angle=angle)
             elif isinstance(roi, PointROI):
                 return PointPixelRegion(PixCoord(*roi.center()))
             elif isinstance(roi, RangeROI):

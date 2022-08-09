@@ -1,3 +1,9 @@
+0.4.1 (unreleased)
+------------------
+
+- Updated ``AstropyRegions`` translator to export ``roi.theta`` angle
+  (supported as of ``glue`` 1.5.0). [#73]
+
 0.4.0 (2022-04-07)
 ------------------
 

@@ -3,6 +3,7 @@ import numpy as np
 from astropy import units as u
 from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from packaging.version import Version
 
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
                      EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion, PixCoord)
@@ -15,6 +16,7 @@ from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState,
                               AndState, XorState, MultiOrState, MultiRangeSubsetState)
 
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
+from glue import __version__ as glue_version
 
 
 class TestAstropyRegions:
@@ -74,28 +76,30 @@ class TestAstropyRegions:
         assert_equal(reg.center.y, 3.5)
         assert_equal(reg.radius, 0.75)
 
-    def test_ellipse_roi(self):
+    @pytest.mark.parametrize('theta', (0, 0.1, -0.5 * np.pi))
+    def test_ellipse_roi(self, theta):
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      EllipticalROI(1, 3.5, 0.75, 5))
+        if theta != 0 and Version(glue_version) < Version('1.5'):
+            with pytest.raises(NotImplementedError, match='Rotated ellipses are not yet supported'):
+                RoiSubsetState(self.data.pixel_component_ids[1],
+                               self.data.pixel_component_ids[0],
+                               EllipticalROI(1, 3.5, 0.75, 5, theta))
+        else:
+            subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
+                                          self.data.pixel_component_ids[0],
+                                          EllipticalROI(1, 3.5, 0.75, 5, theta or None))
 
-        self.dc.new_subset_group(subset_state=subset_state, label='ellipse')
+            self.dc.new_subset_group(subset_state=subset_state, label='ellipse')
 
-        reg = self.data.get_selection_definition(format='astropy-regions')
+            reg = self.data.get_selection_definition(format='astropy-regions')
 
-        assert isinstance(reg, EllipsePixelRegion)
+            assert isinstance(reg, EllipsePixelRegion)
 
-        assert_equal(reg.center.x, 1)
-        assert_equal(reg.center.y, 3.5)
-        assert_equal(reg.width, 1.5)
-        assert_equal(reg.height, 10)
-        assert_quantity_allclose(reg.angle, 0 * u.deg)
-
-        with pytest.raises(NotImplementedError, match='Rotated ellipses are not yet supported'):
-            RoiSubsetState(self.data.pixel_component_ids[1],
-                           self.data.pixel_component_ids[0],
-                           EllipticalROI(1, 3.5, 0.75, 5, 0.1))
+            assert_equal(reg.center.x, 1)
+            assert_equal(reg.center.y, 3.5)
+            assert_equal(reg.width, 1.5)
+            assert_equal(reg.height, 10)
+            assert_quantity_allclose(reg.angle, theta * u.radian)
 
     def test_point_roi(self):
 
@@ -368,42 +372,32 @@ class TestAstropyRegions:
         assert reg.contains(PixCoord(2.75, 4.75))
         assert not reg.contains(PixCoord(5, 7))
 
-    # The following test fails because the logical operations should now work?
-
-    @pytest.mark.xfail
-    def test_invalid_combos(self):
-        good_subset = RoiSubsetState(self.data.pixel_component_ids[1],
-                                     self.data.pixel_component_ids[0],
-                                     RectangularROI(1, 5, 2, 6))
-        bad_subset = RoiSubsetState(self.data.pixel_component_ids[1],
-                                    self.data.main_components[0],
-                                    CircularROI(4.75, 5.75, 0.5))
-        and_sub = AndState(good_subset, bad_subset)
-        or_sub = OrState(good_subset, bad_subset)
-        xor_sub = XorState(good_subset, bad_subset)
-        multior = MultiOrState([good_subset, bad_subset])
+    def test_main_component_combos(self):
+        pci_subset = RoiSubsetState(self.data.pixel_component_ids[1],
+                                    self.data.pixel_component_ids[0],
+                                    RectangularROI(1, 5, 2, 6))
+        main_subset = RoiSubsetState(self.data.pixel_component_ids[1],
+                                     self.data.main_components[0],
+                                     CircularROI(4.75, 5.75, 0.5))
+        and_sub = AndState(pci_subset, main_subset)
+        or_sub = OrState(pci_subset, main_subset)
+        xor_sub = XorState(pci_subset, main_subset)
+        multior = MultiOrState([pci_subset, main_subset])
         self.dc.new_subset_group(subset_state=and_sub, label='and')
         self.dc.new_subset_group(subset_state=or_sub, label='or')
         self.dc.new_subset_group(subset_state=xor_sub, label='xor')
         self.dc.new_subset_group(subset_state=multior, label='multior')
 
-        expected_error = 'Subset state yatt should be y pixel coordinate'
+        and_region = self.data.get_selection_definition(subset_id='and', format='astropy-regions')
+        or_region = self.data.get_selection_definition(subset_id='or', format='astropy-regions')
+        xor_region = self.data.get_selection_definition(subset_id='xor', format='astropy-regions')
+        multior_region = self.data.get_selection_definition(subset_id='multior',
+                                                            format='astropy-regions')
 
-        with pytest.raises(ValueError) as exc:
-            self.data.get_selection_definition(subset_id='and', format='astropy-regions')
-        assert exc.value.args[0] == expected_error
-
-        with pytest.raises(ValueError) as exc:
-            self.data.get_selection_definition(subset_id='or', format='astropy-regions')
-        assert exc.value.args[0] == expected_error
-
-        with pytest.raises(ValueError) as exc:
-            self.data.get_selection_definition(subset_id='xor', format='astropy-regions')
-        assert exc.value.args[0] == expected_error
-
-        with pytest.raises(ValueError) as exc:
-            self.data.get_selection_definition(subset_id='multior', format='astropy-regions')
-        assert exc.value.args[0] == expected_error
+        for reg in and_region, or_region, xor_region, multior_region:
+            assert isinstance(reg, CompoundPixelRegion)
+            assert isinstance(reg.region1, RectanglePixelRegion)
+            assert isinstance(reg.region2, CirclePixelRegion)
 
     def test_reordered_pixel_components(self):
         self.data._pixel_component_ids = self.data._pixel_component_ids[::-1]
