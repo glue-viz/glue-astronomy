@@ -17,14 +17,14 @@ def test_trace():
     data_collection['trace'] = trace
     data = data_collection['trace']
     assert isinstance(data, Data)
-    assert np.all(data['y'] == trace.trace)
+    assert np.all(data['trace'] == trace.trace)
 
     trace_from_data = data.get_object()
     assert isinstance(trace_from_data, tracing.FlatTrace)
 
     # now edit the glue data object, this should now map to an ArrayTrace (instead of a FlatTrace)
     new_trace = np.ones_like(trace.trace)
-    data.update_components({data.get_component('y'): new_trace})
+    data.update_components({data.get_component('trace'): new_trace})
     trace_from_data = data.get_object()
     assert isinstance(trace_from_data, tracing.ArrayTrace)
     assert np.all(trace_from_data.trace == new_trace)

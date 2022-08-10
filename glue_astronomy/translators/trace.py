@@ -18,7 +18,7 @@ class TraceHandler:
         obj : `specreduce.tracing.Trace`
             The Trace object to convert
         """
-        data = Data(x=obj.image[0], y=obj.trace)
+        data = Data(x=obj.image[0], trace=obj.trace)
         if hasattr(obj, 'meta'):
             data.meta.update(obj.meta)
         data.meta['Trace'] = obj
@@ -47,7 +47,7 @@ class TraceHandler:
         # these arrays are still the appropriate length
         if not np.all(trace_x == data['x']):
             raise ValueError("x-values have changed")
-        if not np.all(trace.trace[1] == data['y']):
-            trace = ArrayTrace(trace.image, data['y'])
+        if not np.all(trace.trace[1] == data['trace']):
+            trace = ArrayTrace(trace.image, data['trace'])
 
         return trace
