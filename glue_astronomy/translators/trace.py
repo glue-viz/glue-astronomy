@@ -18,7 +18,7 @@ class TraceHandler:
         obj : `specreduce.tracing.Trace`
             The Trace object to convert
         """
-        data = Data(x=obj.image[0], trace=obj.trace)
+        data = Data(trace=obj.trace)
         if hasattr(obj, 'meta'):
             data.meta.update(obj.meta)
         data.meta['Trace'] = obj
@@ -42,11 +42,6 @@ class TraceHandler:
             raise TypeError("data is not of a valid specreduce Trace object")
 
         trace = data.meta['Trace']
-        trace_x = np.asarray(trace.image[0])
-        # NOTE: glue does not allow changing the shape of data components, so we can assume
-        # these arrays are still the appropriate length
-        if not np.all(trace_x == data['x']):
-            raise ValueError("x-values have changed")
         if not np.all(trace.trace[1] == data['trace']):
             trace = ArrayTrace(trace.image, data['trace'])
 
