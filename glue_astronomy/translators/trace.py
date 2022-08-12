@@ -37,9 +37,9 @@ class TraceHandler:
         """
 
         if isinstance(data, Subset):
-            raise NotImplementedError("cannot convert subset to Trace object")
+            raise NotImplementedError("Cannot convert subset to Trace object.")
         if not isinstance(data.meta.get('Trace'), Trace):
-            raise TypeError("data is not of a valid specreduce Trace object")
+            raise TypeError("data is not a valid specreduce Trace object.")
 
         trace = data.meta['Trace']
         if not np.all(trace.trace[1] == data['trace']):
