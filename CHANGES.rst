@@ -4,7 +4,11 @@
 - Updated ``AstropyRegions`` translator to export ``roi.theta`` angle
   (supported as of ``glue`` 1.5.0). [#73]
 
-- Added support to import and export specreduce Trace objects. [#72]
+- Added support to import and export ``specreduce`` ``Trace`` objects. [#72]
+
+- Translators for ``CCDData``, ``regions``, ``Spectrum1D``, ``SpectralCube``
+  and ``specreduce.tracing.Trace`` objects are now loaded upon availability,
+  making the corresponding packages optional requirements. [#76]
 
 0.4.0 (2022-04-07)
 ------------------
