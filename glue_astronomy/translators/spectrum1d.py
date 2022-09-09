@@ -114,7 +114,8 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         else:
             names = [f"Offset{i}" for i in range(0, self.flux_ndim-1)]
 
-        return (UCD_TO_SPECTRAL_NAME[self.spectral_wcs.world_axis_physical_types[0]], *names)
+        return (UCD_TO_SPECTRAL_NAME.get(self.spectral_wcs.world_axis_physical_types[0], ''),
+                *names)
 
     @property
     def axis_correlation_matrix(self):
