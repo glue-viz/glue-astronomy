@@ -1,3 +1,9 @@
+0.5.1 (unreleased)
+------------------
+
+- Fixed unit parsing for ``Specutils1DHandler.to_data`` so it no longer
+  drops the flux unit in some cases. [#78]
+
 0.5.0 (2022-08-18)
 ------------------
 

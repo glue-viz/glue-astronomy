@@ -236,6 +236,7 @@ def test_spectrum1d_2d_data(spec_ndim):
     assert len(data.main_components) == 1
     assert data.main_components[0].label == 'flux'
     assert_allclose(data['flux'], flux.value)
+    assert data.get_component('flux').units == 'Jy'
 
     assert data.coords.pixel_n_dim == spec_ndim
     assert data.coords.world_n_dim == spec_ndim
