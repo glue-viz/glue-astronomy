@@ -6,6 +6,7 @@ from glue.core import Data, Subset
 from astropy import units as u
 from astropy.wcs import WCSSUB_STOKES, WCS
 
+from spectral_cube import BooleanArrayMask
 from spectral_cube.spectral_cube import BaseSpectralCube, SpectralCube, VaryingResolutionSpectralCube
 from spectral_cube.dask_spectral_cube import DaskSpectralCube, DaskVaryingResolutionSpectralCube
 
