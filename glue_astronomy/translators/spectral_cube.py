@@ -7,7 +7,8 @@ from astropy import units as u
 from astropy.wcs import WCSSUB_STOKES, WCS
 
 from spectral_cube import BooleanArrayMask
-from spectral_cube.spectral_cube import BaseSpectralCube, SpectralCube, VaryingResolutionSpectralCube
+from spectral_cube.spectral_cube import (BaseSpectralCube, SpectralCube, 
+                                         VaryingResolutionSpectralCube)
 from spectral_cube.dask_spectral_cube import DaskSpectralCube, DaskVaryingResolutionSpectralCube
 
 
@@ -86,6 +87,7 @@ class SpectralCubeHandler:
 
         return cls(values, mask=mask, wcs=wcs, meta=data.meta)
 
+
 data_translator(SpectralCube)(SpectralCubeHandler)
 data_translator(DaskSpectralCube)(SpectralCubeHandler)
 
@@ -101,5 +103,6 @@ class VaryingResolutionSpectralCubeHandler(SpectralCubeHandler):
     def to_object(self, data_or_subset, attribute=None, cls=VaryingResolutionSpectralCube):
         return super().to_object(data_or_subset, attribute=attribute, cls=cls,
                                  beams=data_or_subset.meta['beams'])
+
 
 data_translator(DaskVaryingResolutionSpectralCube)(VaryingResolutionSpectralCubeHandler)
