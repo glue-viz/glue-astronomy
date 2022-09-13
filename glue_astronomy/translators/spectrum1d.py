@@ -134,21 +134,15 @@ class Specutils1DHandler:
         # Glue expects spectral axis first for cubes (opposite of specutils).
         # Swap the spectral axis to first here. to_object doesn't need this because
         # Spectrum1D does it automatically on initialization.
-        if obj.flux.ndim > 1:
-            if obj.wcs.world_n_dim == 1:
-                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
-                data['flux'] = obj.flux
-            else:
-                data = Data(coords=obj.wcs)
-                data['flux'] = obj.flux
-                data.get_component('flux').units = str(obj.unit)
+        if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
+            data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
+        elif obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
+            data = Data(coords=SpectralCoordinates(obj.spectral_axis))
         else:
-            if obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
-                data = Data(coords=SpectralCoordinates(obj.spectral_axis))
-            else:
-                data = Data(coords=obj.wcs)
-            data['flux'] = obj.flux
-            data.get_component('flux').units = str(obj.unit)
+            data = Data(coords=obj.wcs)
+
+        data['flux'] = obj.flux
+        data.get_component('flux').units = str(obj.unit)
 
         # Include uncertainties if they exist
         if obj.uncertainty is not None:
