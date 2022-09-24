@@ -3,6 +3,7 @@
 
 - Fixed unit parsing for ``Specutils1DHandler.to_data`` so it no longer
   drops the flux unit in some cases. [#78]
+- Added support for a wider range of spectral-cube objects [#54]
 
 0.5.0 (2022-08-18)
 ------------------
