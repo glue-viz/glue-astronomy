@@ -1,9 +1,11 @@
-0.5.1 (unreleased)
+0.5.1 (2022-09-26)
 ------------------
 
 - Fixed unit parsing for ``Specutils1DHandler.to_data`` so it no longer
   drops the flux unit in some cases. [#78]
-- Added support for a wider range of spectral-cube objects [#54]
+
+- Added basic support for importing and exporting a wider range of
+  ``SpectralCube`` classes. [#54]
 
 0.5.0 (2022-08-18)
 ------------------
