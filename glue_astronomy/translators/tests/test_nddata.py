@@ -3,7 +3,8 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
 from astropy import units as u
-from astropy.nddata import CCDData
+from astropy.nddata import CCDData, NDDataArray
+from astropy.nddata.nduncertainty import StdDevUncertainty
 from astropy.wcs import WCS
 
 from glue.core import Data, DataCollection
@@ -106,6 +107,35 @@ def test_to_ccddata_default_attribute():
                                  'keyword argument.')
 
 
+@pytest.mark.parametrize(
+    'cls, kwargs, data_attr',
+    [(NDDataArray, {'wcs': WCS_CELESTIAL}, 'data'),
+     (StdDevUncertainty, {}, 'array')])
+def test_from_nddata(cls, kwargs, data_attr):
+    spec = cls([[2, 3], [4, 5]] * u.Jy, **kwargs)
+
+    data_collection = DataCollection()
+
+    data_collection['image'] = spec
+
+    data = data_collection['image']
+
+    assert isinstance(data, Data)
+    assert len(data.main_components) == 1
+    assert data.main_components[0].label == 'data'
+    assert_allclose(data['data'], [[2, 3], [4, 5]])
+    component = data.get_component('data')
+    assert component.units == 'Jy'
+
+    # Check round-tripping
+    image_new = data.get_object(cls, attribute='data')
+    assert isinstance(image_new, cls)
+    if hasattr(image_new, 'wcs'):
+        assert image_new.wcs is WCS_CELESTIAL
+    assert_allclose(getattr(image_new, data_attr), [[2, 3], [4, 5]])
+    assert image_new.unit is u.Jy
+
+
 @pytest.mark.parametrize('with_wcs', (False, True))
 def test_from_ccddata(with_wcs):
 
@@ -130,7 +160,7 @@ def test_from_ccddata(with_wcs):
     assert component.units == 'Jy'
 
     # Check round-tripping
-    image_new = data.get_object(attribute='data')
+    image_new = data.get_object(CCDData, attribute='data')
     assert isinstance(image_new, CCDData)
     assert image_new.wcs is (WCS_CELESTIAL if with_wcs else None)
     assert_allclose(image_new.data, [[2, 3], [4, 5]])
@@ -144,22 +174,25 @@ def test_meta_round_trip():
     meta = {'BUNIT': 'Jy/beam',
             'some_variable': 10}
 
-    spec = CCDData([[2, 3], [4, 5]] * u.Jy, wcs=wcs, meta=meta)
-
+    flux = [[2, 3], [4, 5]] * u.Jy
+    kwargs = dict(wcs=wcs, meta=meta)
+    classes = [CCDData, NDDataArray]
+    image_names = ['image_ccd', 'image_ndd']
     data_collection = DataCollection()
 
-    data_collection['image'] = spec
+    for cls, image_name in zip(classes, image_names):
+        data_collection[image_name] = cls(flux, **kwargs)
 
-    data = data_collection['image']
+        data = data_collection[image_name]
 
-    assert isinstance(data, Data)
-    assert len(data.meta) == 2
-    assert data.meta['BUNIT'] == 'Jy/beam'
-    assert data.meta['some_variable'] == 10
+        assert isinstance(data, Data)
+        assert len(data.meta) == 2
+        assert data.meta['BUNIT'] == 'Jy/beam'
+        assert data.meta['some_variable'] == 10
 
-    # Check round-tripping
-    image_new = data.get_object(attribute='data')
-    assert isinstance(image_new, CCDData)
-    assert len(image_new.meta) == 2
-    assert image_new.meta['BUNIT'] == 'Jy/beam'
-    assert image_new.meta['some_variable'] == 10
+        # Check round-tripping
+        image_new = data.get_object(cls, attribute='data')
+        assert isinstance(image_new, cls)
+        assert len(image_new.meta) == 2
+        assert image_new.meta['BUNIT'] == 'Jy/beam'
+        assert image_new.meta['some_variable'] == 10
