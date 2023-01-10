@@ -1,4 +1,4 @@
-name: CI Workflows
+name: CI Tests
 
 on:
   push:
@@ -9,7 +9,17 @@ on:
   pull_request:
 
 jobs:
+  initial_checks:
+    # Mandatory checks before CI tests
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      coverage: false
+      envs: |
+        # Code style
+        - linux: codestyle
+
   tests:
+    needs: initial_checks
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       coverage: codecov
@@ -17,19 +27,17 @@ jobs:
         apt:
           - libxkbcommon-x11-0
           - libgfortran5
+          - libhdf5-dev
         brew:
           - enchant
 
       envs: |
-        # Code style
-        - linux: codestyle
-          coverage: false
-
         # Standard tests
         - linux: py37-test
         - linux: py38-test
         - linux: py39-test
         - linux: py310-test-dev
+        - linux: py311-test-dev
 
         - macos: py37-test
         - windows: py38-test
@@ -38,6 +46,7 @@ jobs:
           PLAT: arm64
 
   publish:
+    needs: tests
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@v1
     with:
       test_extras: test
