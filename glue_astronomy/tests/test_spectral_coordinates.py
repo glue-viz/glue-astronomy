@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from astropy import units as u
-from numpy.testing import assert_equal, assert_allclose
+from numpy.testing import assert_allclose
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
 
