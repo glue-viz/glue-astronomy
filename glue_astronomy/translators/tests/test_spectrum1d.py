@@ -93,7 +93,7 @@ def test_to_spectrum1d_with_spectral_coordinates():
     data.add_component(Component(np.array([3, 4, 5]), units='Jy'), 'x')
 
     assert_allclose(data.coords.pixel_to_world_values([0, 0.5, 1, 1.5, 2]),
-                    [[1, 2.5, 4, 7, 10]])
+                    [1, 2.5, 4, 7, 10])
 
     spec = data.get_object(Spectrum1D, attribute=data.id['x'])
     assert_quantity_allclose(spec.spectral_axis, [1, 4, 10] * u.micron)
