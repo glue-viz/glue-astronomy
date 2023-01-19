@@ -1,5 +1,6 @@
 import numpy as np
 
+from astropy.units import Quantity
 from glue.core.coordinates import Coordinates
 
 __all__ = ['SpectralCoordinates']
@@ -12,6 +13,8 @@ class SpectralCoordinates(Coordinates):
     """
 
     def __init__(self, values):
+        if not isinstance(values, Quantity):
+            raise TypeError('values should be a Quantity instance')
         self._index = np.arange(len(values))
         self._values = values
         super().__init__(n_dim=1)
@@ -32,8 +35,11 @@ class SpectralCoordinates(Coordinates):
         Returns
         -------
         """
-        return tuple(np.interp(world, self._values.value, self._index,
-                               left=np.nan, right=np.nan))
+        if len(world) > 1:
+            raise ValueError('SpectralCoordinates is a 1-d coordinate class '
+                             'and only accepts a single scalar or array to convert')
+        return np.interp(world[0], self._values.value, self._index,
+                         left=np.nan, right=np.nan)
 
     def pixel_to_world_values(self, *pixel):
         """
@@ -43,5 +49,8 @@ class SpectralCoordinates(Coordinates):
         Returns
         -------
         """
-        return tuple(np.interp(pixel, self._index, self._values.value,
-                               left=np.nan, right=np.nan))
+        if len(pixel) > 1:
+            raise ValueError('SpectralCoordinates is a 1-d coordinate class '
+                             'and only accepts a single scalar or array to convert')
+        return np.interp(pixel[0], self._index, self._values.value,
+                         left=np.nan, right=np.nan)
