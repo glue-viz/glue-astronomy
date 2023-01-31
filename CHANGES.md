@@ -1,5 +1,20 @@
 # Full changelog
 
+## v0.6.1 - 2023-01-31
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### Bug Fixes
+
+- Accept `component.units=None` in translators input for new glue-core unit support by @dhomeier in https://github.com/glue-viz/glue-astronomy/pull/84
+
+#### Other Changes
+
+- Require glue-core >= 1.6.1, dropped Python 3.7 support by @pllim in https://github.com/glue-viz/glue-astronomy/pull/83
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.6.0...v0.6.1
+
 ## v0.6.0 - 2023-01-20
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
