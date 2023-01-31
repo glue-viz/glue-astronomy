@@ -73,7 +73,7 @@ class SpectralCubeHandler:
             values = values.copy()
             mask = BooleanArrayMask(mask, wcs=wcs)
 
-        values = values * u.Unit(component.units)
+        values = u.Quantity(values, unit=component.units)
 
         # Drop Stokes axis if there is one for FITS WCS
         if isinstance(wcs, WCS) and wcs.sub([WCSSUB_STOKES]).naxis > 0:
