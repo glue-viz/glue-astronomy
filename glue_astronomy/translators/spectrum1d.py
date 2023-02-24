@@ -246,7 +246,10 @@ class Specutils1DHandler:
 
                 # Get mask if there is one defined, or if this is a subset
                 if subset_state is None:
-                    mask = None
+                    if 'mask' in data.component_ids():
+                        mask = data['mask']
+                    else:
+                        mask = None
                 else:
                     mask = data.get_mask(subset_state=subset_state)
                     mask = ~mask
