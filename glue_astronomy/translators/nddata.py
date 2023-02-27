@@ -8,6 +8,8 @@ from glue.config import data_translator
 from glue.core import Data, Subset
 from glue.core.coordinates import Coordinates
 
+from .spectrum1d import SpectralCoordinates
+
 
 def _get_attribute(attribute, data):
     if isinstance(attribute, str):
@@ -52,6 +54,7 @@ class NDDataArrayHandler:
     def to_data(self, obj):
         data = Data(coords=obj.wcs)
         data['data'] = obj.data
+        data['uncertainty'] = obj.uncertainty.array
         data.get_component('data').units = str(obj.unit)
         data.meta.update(obj.meta)
         return data
@@ -70,20 +73,45 @@ class NDDataArrayHandler:
 
         data, subset_state = _get_data_and_subset_state(data_or_subset)
 
-        if isinstance(data.coords, WCS) or isinstance(data.coords, BaseHighLevelWCS):
+        if (
+            isinstance(data.coords, WCS) or
+            isinstance(data.coords, BaseHighLevelWCS) or
+            isinstance(data.coords, SpectralCoordinates)
+        ):
             wcs = data.coords
         elif type(data.coords) is Coordinates or data.coords is None:
             wcs = None
         else:
             raise TypeError('data.coords should be an instance of Coordinates or WCS')
 
+        component_labels = [d.label for d in data.component_ids()]
+        if attribute is None:
+            if 'data' in component_labels:
+                # by default look for the data attribute
+                attribute = 'data'
+            elif 'flux' in component_labels:
+                # if there is no data attribute, try flux
+                attribute = 'flux'
+
         attribute = _get_attribute(attribute, data)
         component = data.get_component(attribute)
         values = data.get_data(attribute)
         values, mask = _get_value_and_mask(subset_state, data, values)
 
+        if 'uncertainty' in component_labels:
+            uncertainty = StdDevUncertainty(
+                data.get_component('uncertainty').data
+            )
+        else:
+            uncertainty = None
+
         result = NDDataArray(
-            values, unit=component.units, mask=mask, wcs=wcs, meta=data.meta
+            values,
+            unit=component.units,
+            mask=mask,
+            wcs=wcs,
+            meta=data.meta,
+            uncertainty=uncertainty
         )
 
         return result
