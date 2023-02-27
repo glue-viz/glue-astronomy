@@ -54,8 +54,11 @@ class NDDataArrayHandler:
     def to_data(self, obj):
         data = Data(coords=obj.wcs)
         data['data'] = obj.data
-        data['uncertainty'] = obj.uncertainty.array
         data.get_component('data').units = str(obj.unit)
+        if obj.uncertainty is not None:
+            data['uncertainty'] = getattr(
+                obj.uncertainty, 'array', obj.uncertainty
+            )
         data.meta.update(obj.meta)
         return data
 
@@ -73,11 +76,7 @@ class NDDataArrayHandler:
 
         data, subset_state = _get_data_and_subset_state(data_or_subset)
 
-        if (
-            isinstance(data.coords, WCS) or
-            isinstance(data.coords, BaseHighLevelWCS) or
-            isinstance(data.coords, SpectralCoordinates)
-        ):
+        if isinstance(data.coords, (WCS, BaseHighLevelWCS, SpectralCoordinates)):
             wcs = data.coords
         elif type(data.coords) is Coordinates or data.coords is None:
             wcs = None
@@ -86,12 +85,10 @@ class NDDataArrayHandler:
 
         component_labels = [d.label for d in data.component_ids()]
         if attribute is None:
-            if 'data' in component_labels:
-                # by default look for the data attribute
-                attribute = 'data'
-            elif 'flux' in component_labels:
-                # if there is no data attribute, try flux
-                attribute = 'flux'
+            for desired_label in ('data', 'flux'):
+                if desired_label in component_labels:
+                    attribute = desired_label
+                    break
 
         attribute = _get_attribute(attribute, data)
         component = data.get_component(attribute)
