@@ -136,6 +136,22 @@ def test_from_nddata(cls, kwargs, data_attr):
     assert image_new.unit is u.Jy
 
 
+def test_nddata_uncertainty():
+    data = [[2, 3], [4, 5]] * u.Jy
+    uncertainty = StdDevUncertainty(np.ones_like(data))
+    spec = NDDataArray(
+        data=data,
+        uncertainty=uncertainty
+    )
+    data_collection = DataCollection()
+    data_collection['data'] = spec
+
+    data = data_collection['data']
+    spec_new = data.get_object(NDDataArray)
+    assert isinstance(spec_new.uncertainty, StdDevUncertainty)
+    assert_equal(spec_new.uncertainty.array, uncertainty.array)
+
+
 @pytest.mark.parametrize('with_wcs', (False, True))
 def test_from_ccddata(with_wcs):
 
