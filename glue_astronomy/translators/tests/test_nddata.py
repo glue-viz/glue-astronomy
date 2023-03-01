@@ -4,7 +4,9 @@ from numpy.testing import assert_allclose, assert_equal
 
 from astropy import units as u
 from astropy.nddata import CCDData, NDDataArray
-from astropy.nddata.nduncertainty import StdDevUncertainty
+from astropy.nddata.nduncertainty import (
+    StdDevUncertainty, VarianceUncertainty, InverseVariance
+)
 from astropy.wcs import WCS
 
 from glue.core import Data, DataCollection
@@ -136,7 +138,11 @@ def test_from_nddata(cls, kwargs, data_attr):
     assert image_new.unit is u.Jy
 
 
-@pytest.mark.parametrize('uncertainty_type', (StdDevUncertainty, VarianceUncertainty, InverseVariance))
+@pytest.mark.parametrize(
+    'uncertainty_type', (
+            StdDevUncertainty, VarianceUncertainty, InverseVariance
+    )
+)
 def test_nddata_uncertainty(uncertainty_type):
     data = [[2, 3], [4, 5]] * u.Jy
     uncertainty = uncertainty_type(np.ones_like(data.value))
@@ -150,7 +156,7 @@ def test_nddata_uncertainty(uncertainty_type):
     data = data_collection['data']
     spec_new = data.get_object(NDDataArray)
     assert isinstance(spec_new.uncertainty, StdDevUncertainty)
-    if  isinstance(uncertainty, StdDevUncertainty):
+    if isinstance(uncertainty, StdDevUncertainty):
         assert_equal(spec_new.uncertainty.array, uncertainty.array)
     else:
         assert_equal(spec_new.uncertainty.array, uncertainty.represent_as(StdDevUncertainty).array)
