@@ -8,7 +8,7 @@ from glue.config import data_translator
 from glue.core import Data, Subset
 from glue.core.coordinates import Coordinates
 
-from .spectrum1d import SpectralCoordinates
+from .spectrum1d import SpectralCoordinates, UNCERT_REF
 
 
 def _get_attribute(attribute, data):
@@ -56,9 +56,8 @@ class NDDataArrayHandler:
         data['data'] = obj.data
         data.get_component('data').units = str(obj.unit)
         if obj.uncertainty is not None:
-            data['uncertainty'] = getattr(
-                obj.uncertainty, 'array', obj.uncertainty
-            )
+            uncert = obj.uncertainty.represent_as(StdDevUncertainty)
+            data['uncertainty'] = uncert.array
         data.meta.update(obj.meta)
         return data
 
@@ -96,9 +95,12 @@ class NDDataArrayHandler:
         values, mask = _get_value_and_mask(subset_state, data, values)
 
         if 'uncertainty' in component_labels:
-            uncertainty = StdDevUncertainty(
+            uncert_cls = UNCERT_REF[
+                data.meta.get('uncertainty_type', 'std')
+            ]
+            uncertainty = uncert_cls(
                 data.get_component('uncertainty').data
-            )
+            ).represent_as(StdDevUncertainty)
         else:
             uncertainty = None
 
