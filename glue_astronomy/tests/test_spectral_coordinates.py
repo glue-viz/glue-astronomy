@@ -19,6 +19,7 @@ def test_basic():
 
     assert sc.world_axis_units == ('Hz',)
 
+
 def test_invalid_init():
 
     with pytest.raises(TypeError, match='values should be a Quantity instance'):
