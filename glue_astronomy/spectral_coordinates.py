@@ -27,6 +27,10 @@ class SpectralCoordinates(Coordinates):
         """
         return self._values
 
+    @property
+    def world_axis_units(self):
+        return (self._values.unit.to_string('vounit'),)
+
     def world_to_pixel_values(self, *world):
         """
         Parameters

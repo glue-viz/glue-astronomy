@@ -17,6 +17,7 @@ def test_basic():
     assert_allclose(sc.world_to_pixel_values(10), 0)
     assert_allclose(sc.world_to_pixel_values([10, 15, 20]), [0, 0.5, 1.0])
 
+    assert sc.world_axis_units == ('Hz',)
 
 def test_invalid_init():
 
