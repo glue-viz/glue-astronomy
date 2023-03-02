@@ -1,5 +1,20 @@
 # Full changelog
 
+## v0.7.0 - 2023-03-02
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### New Features
+
+- Adding support for uncertainty extraction to NDDataArray by @bmorris3 in https://github.com/glue-viz/glue-astronomy/pull/86
+
+#### Bug Fixes
+
+- Fix world_axis_units for SpectralCoordinates by @astrofrog in https://github.com/glue-viz/glue-astronomy/pull/87
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.6.1...v0.7.0
+
 ## v0.6.1 - 2023-01-31
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
