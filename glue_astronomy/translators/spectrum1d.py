@@ -136,7 +136,11 @@ class Specutils1DHandler:
         # Spectrum1D does it automatically on initialization.
         if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
             data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
-        elif obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
+        elif (
+            (obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1) and
+            (getattr(obj.wcs, 'is_spectral', False) or
+             isinstance(obj.wcs, GWCS))
+        ):
             data = Data(coords=SpectralCoordinates(obj.spectral_axis))
         else:
             data = Data(coords=obj.wcs)
