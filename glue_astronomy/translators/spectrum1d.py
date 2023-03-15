@@ -129,8 +129,6 @@ class Specutils1DHandler:
 
     def to_data(self, obj):
 
-        # Glue expects spectral axis first for cubes (opposite of specutils).
-        # Swap the spectral axis to first here. to_object doesn't need this because
         # glue needs WCS to be padded to the dimensionality of the flux; for 1D
         # flux this is not required, but provides additional to `data.coords`.
         if (obj.flux.ndim > 1 or isinstance(obj.wcs, WCS)) and obj.wcs.world_n_dim == 1:
