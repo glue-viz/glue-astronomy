@@ -3,8 +3,6 @@ import numpy as np
 from glue.config import data_translator
 from glue.core import Data, Subset
 
-from gwcs import WCS as GWCS
-
 from astropy.wcs import WCS
 from astropy import units as u
 from astropy.wcs import WCSSUB_SPECTRAL
@@ -133,14 +131,11 @@ class Specutils1DHandler:
 
         # Glue expects spectral axis first for cubes (opposite of specutils).
         # Swap the spectral axis to first here. to_object doesn't need this because
-        # Spectrum1D does it automatically on initialization.
-        if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
+        # glue needs WCS to be padded to the dimensionality of the flux; for 1D
+        # flux this is not required, but provides additional to `data.coords`.
+        if (obj.flux.ndim > 1 or isinstance(obj.wcs, WCS)) and obj.wcs.world_n_dim == 1:
             data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
-        elif (
-            (obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1) and
-            (getattr(obj.wcs, 'is_spectral', False) or
-             isinstance(obj.wcs, GWCS))
-        ):
+        elif obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1:
             data = Data(coords=SpectralCoordinates(obj.spectral_axis))
         else:
             data = Data(coords=obj.wcs)
