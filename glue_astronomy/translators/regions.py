@@ -1,13 +1,13 @@
 from glue.config import subset_state_translator
 from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState, AndState,
-                              XorState, MultiOrState, Subset, MultiRangeSubsetState)
+                              XorState, MultiOrState, Subset, MultiRangeSubsetState, InvertState)
 from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, PointROI,
                            RangeROI, AbstractMplRoi, EllipticalROI)
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from astropy import units as u
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
-                     PointPixelRegion, PixCoord, EllipsePixelRegion)
+                     PointPixelRegion, PixCoord, EllipsePixelRegion, CircleAnnulusPixelRegion)
 
 
 def range_to_rect(data, ori, low, high):
@@ -132,11 +132,23 @@ class AstropyRegionsHandler:
             return PointPixelRegion(PixCoord(*subset_state.get_xy(data, 1, 0)))
 
         elif isinstance(subset_state, AndState):
-            temp_sub1 = Subset(data=data)
-            temp_sub1.subset_state = subset_state.state1
-            temp_sub2 = Subset(data=data)
-            temp_sub2.subset_state = subset_state.state2
-            return self.to_object(temp_sub1) & self.to_object(temp_sub2)
+            if ((not isinstance(subset_state.state1, InvertState)) and
+                    isinstance(subset_state.state1.roi, CircularROI) and
+                    isinstance(subset_state.state2, InvertState) and
+                    isinstance(subset_state.state2.state1.roi, CircularROI) and
+                    (subset_state.state1.roi.xc == subset_state.state2.state1.roi.xc) and
+                    (subset_state.state1.roi.yc == subset_state.state2.state1.roi.yc) and
+                    (subset_state.state1.roi.radius > subset_state.state2.state1.roi.radius)):
+                return CircleAnnulusPixelRegion(
+                    center=PixCoord(x=subset_state.state1.roi.xc, y=subset_state.state1.roi.yc),
+                    inner_radius=subset_state.state2.state1.roi.radius,
+                    outer_radius=subset_state.state1.roi.radius)
+            else:
+                temp_sub1 = Subset(data=data)
+                temp_sub1.subset_state = subset_state.state1
+                temp_sub2 = Subset(data=data)
+                temp_sub2.subset_state = subset_state.state2
+                return self.to_object(temp_sub1) & self.to_object(temp_sub2)
 
         elif isinstance(subset_state, OrState):
             temp_sub1 = Subset(data=data)
