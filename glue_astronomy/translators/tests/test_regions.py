@@ -6,7 +6,8 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from packaging.version import Version
 
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
-                     EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion, PixCoord)
+                     EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion,
+                     CircleAnnulusPixelRegion, PixCoord)
 
 from glue.core import Data, DataCollection
 from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, EllipticalROI,
@@ -18,11 +19,13 @@ from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState,
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 from glue import __version__ as glue_version
 
+from glue_astronomy.translators.regions import _annulus_to_subset_state
+
 
 class TestAstropyRegions:
 
     def setup_method(self, method):
-        self.data = Data(flux=np.ones((128, 256)))
+        self.data = Data(flux=np.ones((128, 256)))  # ny, nx
         self.dc = DataCollection([self.data])
 
     def test_rectangular_roi(self):
@@ -304,6 +307,20 @@ class TestAstropyRegions:
         assert not reg.contains(PixCoord(5.1, 6.1))
         assert not reg.contains(PixCoord(11, 12))
 
+    def test_circular_annulus(self):
+        reg_orig = CircleAnnulusPixelRegion(
+            center=PixCoord(x=50, y=25), inner_radius=7, outer_radius=13)
+        subset_state = _annulus_to_subset_state(reg_orig, self.data)
+        self.dc.new_subset_group(subset_state=subset_state, label='annulus_1')
+        reg = self.data.get_selection_definition(subset_id='annulus_1', format='astropy-regions')
+
+        # Would round-trip if translator worked correctly.
+        assert isinstance(reg, CircleAnnulusPixelRegion)
+        assert reg.center.x == reg_orig.center.x
+        assert reg.center.y == reg_orig.center.y
+        assert reg.outer_radius == reg_orig.outer_radius
+        assert reg.inner_radius == reg_orig.inner_radius
+
     def test_or_region(self):
         subset_state1 = RoiSubsetState(self.data.pixel_component_ids[1],
                                        self.data.pixel_component_ids[0],
@@ -394,7 +411,7 @@ class TestAstropyRegions:
         multior_region = self.data.get_selection_definition(subset_id='multior',
                                                             format='astropy-regions')
 
-        for reg in and_region, or_region, xor_region, multior_region:
+        for reg in (and_region, or_region, xor_region, multior_region):
             assert isinstance(reg, CompoundPixelRegion)
             assert isinstance(reg.region1, RectanglePixelRegion)
             assert isinstance(reg.region2, CirclePixelRegion)
@@ -436,7 +453,7 @@ class TestAstropyRegions:
 
         self.dc.new_subset_group(subset_state=subset_state, label='rectangular')
 
-        for subset_id in [None, 0, 'rectangular']:
+        for subset_id in (None, 0, 'rectangular'):
             reg = self.data.get_selection_definition(format='astropy-regions',
                                                      subset_id=subset_id)
             assert isinstance(reg, RectanglePixelRegion)
@@ -445,15 +462,15 @@ class TestAstropyRegions:
             assert_allclose(reg.width, 2.5)
             assert_allclose(reg.height, 3.5)
 
-        with pytest.raises(ValueError) as exc:
+        with pytest.raises(ValueError, match="No subset found with the label 'circular'"):
             self.data.get_selection_definition(format='astropy-regions',
                                                subset_id='circular')
-        assert exc.value.args[0] == "No subset found with the label 'circular'"
 
     def test_unsupported(self):
         self.dc.new_subset_group(subset_state=self.data.id['flux'] > 0.5,
                                  label='Flux-based selection')
-        with pytest.raises(NotImplementedError) as exc:
+        with pytest.raises(
+                NotImplementedError,
+                match='Subset states of type InequalitySubsetState are not supported'):
             self.data.get_selection_definition(format='astropy-regions',
                                                subset_id='Flux-based selection')
-        assert exc.value.args[0] == 'Subset states of type InequalitySubsetState are not supported'
