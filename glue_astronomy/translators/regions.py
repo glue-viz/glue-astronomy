@@ -7,7 +7,8 @@ from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from astropy import units as u
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
-                     PointPixelRegion, PixCoord, EllipsePixelRegion, CircleAnnulusPixelRegion)
+                     PointPixelRegion, PixCoord, EllipsePixelRegion,
+                     AnnulusPixelRegion, CircleAnnulusPixelRegion)
 
 __all__ = ["range_to_rect", "AstropyRegionsHandler"]
 
@@ -65,10 +66,10 @@ def _is_annulus(subset_state):
 # https://github.com/glue-viz/glue/issues/2390
 def _annulus_to_subset_state(reg, data):
     """AnnulusPixelRegion to glue subset state."""
-    if not isinstance(reg, AnnulusPixelRegion):
-        raise ValueError("`reg` should be an `AnnulusPixelRegion` instance")
+    if not isinstance(reg, AnnulusPixelRegion):  # pragma: no cover
+        raise ValueError(f"{reg} is not an AnnulusPixelRegion instance")
     # TODO: Add ellipse and rectangle annulus support.
-    elif not isinstance(reg, CircleAnnulusPixelRegion):  # pragma: no cover
+    if not isinstance(reg, CircleAnnulusPixelRegion):  # pragma: no cover
         raise NotImplementedError(f"{reg} not supported")
 
     xcen = reg.center.x
