@@ -1,13 +1,16 @@
 from glue.config import subset_state_translator
 from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState, AndState,
-                              XorState, MultiOrState, Subset, MultiRangeSubsetState)
+                              XorState, MultiOrState, Subset, MultiRangeSubsetState, InvertState)
 from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, PointROI,
                            RangeROI, AbstractMplRoi, EllipticalROI)
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 
 from astropy import units as u
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
-                     PointPixelRegion, PixCoord, EllipsePixelRegion)
+                     PointPixelRegion, PixCoord, EllipsePixelRegion,
+                     AnnulusPixelRegion, CircleAnnulusPixelRegion)
+
+__all__ = ["range_to_rect", "AstropyRegionsHandler"]
 
 
 def range_to_rect(data, ori, low, high):
@@ -44,6 +47,38 @@ def range_to_rect(data, ori, low, high):
     width = xmax - xmin
     height = ymax - ymin
     return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
+
+
+def _is_annulus(subset_state):
+    # subset_state.state1 = outer circle
+    # subset_state.state2 = inner circle
+    # subset_state.state2 is inverted, so we need its state1
+    return ((not isinstance(subset_state.state1, InvertState)) and
+            isinstance(subset_state.state1.roi, CircularROI) and
+            isinstance(subset_state.state2, InvertState) and
+            isinstance(subset_state.state2.state1.roi, CircularROI) and
+            (subset_state.state1.roi.xc == subset_state.state2.state1.roi.xc) and
+            (subset_state.state1.roi.yc == subset_state.state2.state1.roi.yc) and
+            (subset_state.state1.roi.radius > subset_state.state2.state1.roi.radius))
+
+
+# Put this here because there is nowhere else to put it.
+# https://github.com/glue-viz/glue/issues/2390
+def _annulus_to_subset_state(reg, data):
+    """AnnulusPixelRegion to glue subset state."""
+    if not isinstance(reg, AnnulusPixelRegion):  # pragma: no cover
+        raise ValueError(f"{reg} is not an AnnulusPixelRegion instance")
+    # TODO: Add ellipse and rectangle annulus support.
+    if not isinstance(reg, CircleAnnulusPixelRegion):  # pragma: no cover
+        raise NotImplementedError(f"{reg} not supported")
+
+    xcen = reg.center.x
+    ycen = reg.center.y
+    state1 = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
+                            CircularROI(xcen, ycen, reg.outer_radius))
+    state2 = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
+                            CircularROI(xcen, ycen, reg.inner_radius))
+    return AndState(state1, ~state2)
 
 
 @subset_state_translator('astropy-regions')
@@ -132,11 +167,17 @@ class AstropyRegionsHandler:
             return PointPixelRegion(PixCoord(*subset_state.get_xy(data, 1, 0)))
 
         elif isinstance(subset_state, AndState):
-            temp_sub1 = Subset(data=data)
-            temp_sub1.subset_state = subset_state.state1
-            temp_sub2 = Subset(data=data)
-            temp_sub2.subset_state = subset_state.state2
-            return self.to_object(temp_sub1) & self.to_object(temp_sub2)
+            if _is_annulus(subset_state):
+                return CircleAnnulusPixelRegion(
+                    center=PixCoord(x=subset_state.state1.roi.xc, y=subset_state.state1.roi.yc),
+                    inner_radius=subset_state.state2.state1.roi.radius,
+                    outer_radius=subset_state.state1.roi.radius)
+            else:
+                temp_sub1 = Subset(data=data)
+                temp_sub1.subset_state = subset_state.state1
+                temp_sub2 = Subset(data=data)
+                temp_sub2.subset_state = subset_state.state2
+                return self.to_object(temp_sub1) & self.to_object(temp_sub2)
 
         elif isinstance(subset_state, OrState):
             temp_sub1 = Subset(data=data)
