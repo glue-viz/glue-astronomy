@@ -64,9 +64,11 @@ def _is_annulus(subset_state):
 # Put this here because there is nowhere else to put it.
 # https://github.com/glue-viz/glue/issues/2390
 def _annulus_to_subset_state(reg, data):
-    """CircleAnnulusPixelRegion to glue subset state."""
-    # TODO: Add ellipse and rectangle support.
-    if not isinstance(reg, CircleAnnulusPixelRegion):  # pragma: no cover
+    """AnnulusPixelRegion to glue subset state."""
+    if not isinstance(reg, AnnulusPixelRegion):
+        raise ValueError("`reg` should be an `AnnulusPixelRegion` instance")
+    # TODO: Add ellipse and rectangle annulus support.
+    elif not isinstance(reg, CircleAnnulusPixelRegion):  # pragma: no cover
         raise NotImplementedError(f"{reg} not supported")
 
     xcen = reg.center.x
