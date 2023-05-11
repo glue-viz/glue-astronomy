@@ -1,5 +1,20 @@
 # Full changelog
 
+## v0.8.0 - 2023-05-11
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### New Features
+
+- Added translator for `CircleAnnulusPixelRegion` by @pllim in https://github.com/glue-viz/glue-astronomy/pull/90
+
+#### Bug Fixes
+
+- Use `CircularROI.center` to avoid deprecation warnings with glue_core >= 1.10 by @dhomeier in https://github.com/glue-viz/glue-astronomy/pull/91
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.7.0...v0.8.0
+
 ## v0.7.0 - 2023-03-02
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
