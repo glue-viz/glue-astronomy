@@ -4,13 +4,17 @@ from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState, AndStat
 from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, PointROI,
                            RangeROI, AbstractMplRoi, EllipticalROI)
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
+from glue import __version__ as glue_version
 
 from astropy import units as u
+from packaging.version import Version
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
                      PointPixelRegion, PixCoord, EllipsePixelRegion,
                      AnnulusPixelRegion, CircleAnnulusPixelRegion)
 
 __all__ = ["range_to_rect", "AstropyRegionsHandler"]
+
+GLUE_LT_1_10 = Version(glue_version) < Version('1.10')
 
 
 def range_to_rect(data, ori, low, high):
@@ -117,7 +121,8 @@ class AstropyRegionsHandler:
             elif isinstance(roi, PolygonalROI):
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
             elif isinstance(roi, CircularROI):
-                return CirclePixelRegion(PixCoord(*roi.get_center()), roi.get_radius())
+                xcen, ycen = roi.get_center() if GLUE_LT_1_10 else roi.center()
+                return CirclePixelRegion(PixCoord(xcen, ycen), roi.get_radius())
             elif isinstance(roi, EllipticalROI):
                 return EllipsePixelRegion(
                     PixCoord(roi.xc, roi.yc), roi.radius_x * 2, roi.radius_y * 2, angle=angle)
