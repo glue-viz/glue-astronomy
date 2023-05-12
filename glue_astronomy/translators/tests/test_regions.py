@@ -19,7 +19,7 @@ from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState,
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 from glue import __version__ as glue_version
 
-from glue_astronomy.translators.regions import _annulus_to_subset_state
+from glue_astronomy.translators.regions import _annulus_to_subset_state, GLUE_LT_1_10_1
 
 
 class TestAstropyRegions:
@@ -311,6 +311,13 @@ class TestAstropyRegions:
         reg_orig = CircleAnnulusPixelRegion(
             center=PixCoord(x=50, y=25), inner_radius=7, outer_radius=13)
         subset_state = _annulus_to_subset_state(reg_orig, self.data)
+
+        # There is a new way to make annulus in newer glue.
+        if not GLUE_LT_1_10_1:
+            from glue.core.roi import CircularAnnulusROI
+            assert (isinstance(subset_state, RoiSubsetState) and
+                    isinstance(subset_state.roi, CircularAnnulusROI))
+
         self.dc.new_subset_group(subset_state=subset_state, label='annulus_1')
         reg = self.data.get_selection_definition(subset_id='annulus_1', format='astropy-regions')
 

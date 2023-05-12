@@ -15,6 +15,7 @@ from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion
 __all__ = ["range_to_rect", "AstropyRegionsHandler"]
 
 GLUE_LT_1_10 = Version(glue_version) < Version('1.10')
+GLUE_LT_1_10_1 = Version(glue_version) < Version('1.10.1.dev')  # remove .dev after it is released
 
 
 def range_to_rect(data, ori, low, high):
@@ -54,16 +55,31 @@ def range_to_rect(data, ori, low, high):
 
 
 def _is_annulus(subset_state):
+    # There is a new way to make annulus in newer glue.
+    if not GLUE_LT_1_10_1:
+        from glue.core.roi import CircularAnnulusROI
+        res1 = (isinstance(subset_state, RoiSubsetState) and
+                isinstance(subset_state.roi, CircularAnnulusROI))
+    else:
+        res1 = False
+
     # subset_state.state1 = outer circle
     # subset_state.state2 = inner circle
     # subset_state.state2 is inverted, so we need its state1
-    return ((not isinstance(subset_state.state1, InvertState)) and
-            isinstance(subset_state.state1.roi, CircularROI) and
-            isinstance(subset_state.state2, InvertState) and
-            isinstance(subset_state.state2.state1.roi, CircularROI) and
-            (subset_state.state1.roi.xc == subset_state.state2.state1.roi.xc) and
-            (subset_state.state1.roi.yc == subset_state.state2.state1.roi.yc) and
-            (subset_state.state1.roi.radius > subset_state.state2.state1.roi.radius))
+    if not res1:
+        res2 = (hasattr(subset_state, 'state1') and
+                isinstance(subset_state.state1, RoiSubsetState) and
+                isinstance(subset_state.state1.roi, CircularROI) and
+                isinstance(subset_state.state2, InvertState) and
+                isinstance(subset_state.state2.state1, RoiSubsetState) and
+                isinstance(subset_state.state2.state1.roi, CircularROI) and
+                (subset_state.state1.roi.xc == subset_state.state2.state1.roi.xc) and
+                (subset_state.state1.roi.yc == subset_state.state2.state1.roi.yc) and
+                (subset_state.state1.roi.radius > subset_state.state2.state1.roi.radius))
+    else:
+        res2 = False
+
+    return res1 or res2
 
 
 # Put this here because there is nowhere else to put it.
@@ -78,11 +94,22 @@ def _annulus_to_subset_state(reg, data):
 
     xcen = reg.center.x
     ycen = reg.center.y
-    state1 = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
-                            CircularROI(xcen, ycen, reg.outer_radius))
-    state2 = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
-                            CircularROI(xcen, ycen, reg.inner_radius))
-    return AndState(state1, ~state2)
+
+    # There is a new way to make annulus in newer glue.
+    if not GLUE_LT_1_10_1:
+        from glue.core.roi import CircularAnnulusROI
+        sbst = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
+                              CircularAnnulusROI(xc=xcen, yc=ycen,
+                                                 inner_radius=reg.inner_radius,
+                                                 outer_radius=reg.outer_radius))
+    else:
+        state1 = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
+                                CircularROI(xcen, ycen, reg.outer_radius))
+        state2 = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
+                                CircularROI(xcen, ycen, reg.inner_radius))
+        sbst = AndState(state1, ~state2)
+
+    return sbst
 
 
 @subset_state_translator('astropy-regions')
@@ -137,6 +164,18 @@ class AstropyRegionsHandler:
                 try:
                     return self.to_object(temp_sub)
                 except NotImplementedError:
+                    raise NotImplementedError("ROIs of type {0} are not yet supported"
+                                              .format(roi.__class__.__name__))
+
+            # There is a new way to make annulus in newer glue.
+            elif not GLUE_LT_1_10_1:
+                from glue.core.roi import CircularAnnulusROI
+                if isinstance(roi, CircularAnnulusROI):
+                    return CircleAnnulusPixelRegion(
+                        center=PixCoord(x=roi.xc, y=roi.yc),
+                        inner_radius=roi.inner_radius,
+                        outer_radius=roi.outer_radius)
+                else:
                     raise NotImplementedError("ROIs of type {0} are not yet supported"
                                               .format(roi.__class__.__name__))
 
