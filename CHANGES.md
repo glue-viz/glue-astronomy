@@ -1,5 +1,16 @@
 # Full changelog
 
+## v0.9.0 - 2023-06-01
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### New Features
+
+- Support new CircularAnnulusROI by @pllim in https://github.com/glue-viz/glue-astronomy/pull/92
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.8.0...v0.9.0
+
 ## v0.8.0 - 2023-05-11
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
