@@ -19,7 +19,8 @@ from glue.core.subset import (RoiSubsetState, RangeSubsetState, OrState,
 from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 from glue import __version__ as glue_version
 
-from glue_astronomy.translators.regions import _annulus_to_subset_state, GLUE_LT_1_10_1
+from glue_astronomy.translators.regions import (_annulus_to_subset_state, GLUE_LT_1_11,
+                                                AstropyRegionsHandler)
 
 
 class TestAstropyRegions:
@@ -44,6 +45,15 @@ class TestAstropyRegions:
         assert_allclose(reg.center.y, 1.55)
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
+
+        # Test direct call to handler
+        handler = AstropyRegionsHandler()
+        reg_2 = handler.to_object(subset_state)
+        assert isinstance(reg_2, RectanglePixelRegion)
+        assert_allclose(reg_2.center.x, 2.25)
+        assert_allclose(reg_2.center.y, 1.55)
+        assert_allclose(reg_2.width, 2.5)
+        assert_allclose(reg_2.height, 3.5)
 
     def test_polygonal_roi(self):
 
@@ -313,7 +323,7 @@ class TestAstropyRegions:
         subset_state = _annulus_to_subset_state(reg_orig, self.data)
 
         # There is a new way to make annulus in newer glue.
-        if not GLUE_LT_1_10_1:
+        if not GLUE_LT_1_11:
             from glue.core.roi import CircularAnnulusROI
             assert (isinstance(subset_state, RoiSubsetState) and
                     isinstance(subset_state.roi, CircularAnnulusROI))

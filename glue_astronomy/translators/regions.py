@@ -14,8 +14,7 @@ from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion
 
 __all__ = ["range_to_rect", "AstropyRegionsHandler"]
 
-GLUE_LT_1_10 = Version(glue_version) < Version('1.10')
-GLUE_LT_1_10_1 = Version(glue_version) < Version('1.10.1.dev')  # remove .dev after it is released
+GLUE_LT_1_11 = Version(glue_version) < Version('1.11')
 
 
 def range_to_rect(data, ori, low, high):
@@ -56,7 +55,7 @@ def range_to_rect(data, ori, low, high):
 
 def _is_annulus(subset_state):
     # There is a new way to make annulus in newer glue.
-    if not GLUE_LT_1_10_1:
+    if not GLUE_LT_1_11:
         from glue.core.roi import CircularAnnulusROI
         res1 = (isinstance(subset_state, RoiSubsetState) and
                 isinstance(subset_state.roi, CircularAnnulusROI))
@@ -96,7 +95,7 @@ def _annulus_to_subset_state(reg, data):
     ycen = reg.center.y
 
     # There is a new way to make annulus in newer glue.
-    if not GLUE_LT_1_10_1:
+    if not GLUE_LT_1_11:
         from glue.core.roi import CircularAnnulusROI
         sbst = RoiSubsetState(data.pixel_component_ids[1], data.pixel_component_ids[0],
                               CircularAnnulusROI(xc=xcen, yc=ycen,
@@ -124,16 +123,20 @@ class AstropyRegionsHandler:
         subset : `glue.core.subset.Subset`
             The subset to convert to a Region object
         """
-        data = subset.data
-
-        if data.pixel_component_ids[0].axis == 0:
-            x_pix_att = data.pixel_component_ids[1]
-            y_pix_att = data.pixel_component_ids[0]
-        else:
-            x_pix_att = data.pixel_component_ids[0]
-            y_pix_att = data.pixel_component_ids[1]
-
-        subset_state = subset.subset_state
+        if not isinstance(subset, RoiSubsetState):
+            subset_state = subset.subset_state
+            data = subset.data
+            if data.pixel_component_ids[0].axis == 0:
+                x_pix_att = data.pixel_component_ids[1]
+                y_pix_att = data.pixel_component_ids[0]
+            else:
+                x_pix_att = data.pixel_component_ids[0]
+                y_pix_att = data.pixel_component_ids[1]
+        else:  # Special handling if RoiSubsetState is passed in directly
+            subset_state = subset
+            data = None
+            x_pix_att = None
+            y_pix_att = None
 
         if isinstance(subset_state, RoiSubsetState):
 
@@ -148,7 +151,7 @@ class AstropyRegionsHandler:
             elif isinstance(roi, PolygonalROI):
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
             elif isinstance(roi, CircularROI):
-                xcen, ycen = roi.get_center() if GLUE_LT_1_10 else roi.center()
+                xcen, ycen = roi.get_center() if GLUE_LT_1_11 else roi.center()
                 return CirclePixelRegion(PixCoord(xcen, ycen), roi.get_radius())
             elif isinstance(roi, EllipticalROI):
                 return EllipsePixelRegion(
@@ -168,7 +171,7 @@ class AstropyRegionsHandler:
                                               .format(roi.__class__.__name__))
 
             # There is a new way to make annulus in newer glue.
-            elif not GLUE_LT_1_10_1:
+            elif not GLUE_LT_1_11:
                 from glue.core.roi import CircularAnnulusROI
                 if isinstance(roi, CircularAnnulusROI):
                     return CircleAnnulusPixelRegion(
