@@ -144,15 +144,30 @@ class AstropyRegionsHandler:
                 ycen = 0.5 * (roi.ymin + roi.ymax)
                 width = roi.xmax - roi.xmin
                 height = roi.ymax - roi.ymin
-                return RectanglePixelRegion(PixCoord(xcen, ycen), width, height, angle=angle)
+                reg = RectanglePixelRegion(PixCoord(xcen, ycen), width, height, angle=angle)
+                data = subset_state.xatt.parent
+                if data is None or data.coords is None:
+                    return reg
+                else:
+                    return reg.to_sky(data.coords)
             elif isinstance(roi, PolygonalROI):
                 return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
             elif isinstance(roi, CircularROI):
                 xcen, ycen = roi.get_center() if GLUE_LT_1_10 else roi.center()
-                return CirclePixelRegion(PixCoord(xcen, ycen), roi.get_radius())
+                reg = CirclePixelRegion(PixCoord(xcen, ycen), roi.get_radius())
+                data = subset_state.xatt.parent
+                if data is None or data.coords is None:
+                    return reg
+                else:
+                    return reg.to_sky(data.coords)
             elif isinstance(roi, EllipticalROI):
-                return EllipsePixelRegion(
+                reg = EllipsePixelRegion(
                     PixCoord(roi.xc, roi.yc), roi.radius_x * 2, roi.radius_y * 2, angle=angle)
+                data = subset_state.xatt.parent
+                if data is None or data.coords is None:
+                    return reg
+                else:
+                    return reg.to_sky(data.coords)
             elif isinstance(roi, PointROI):
                 return PointPixelRegion(PixCoord(*roi.center()))
             elif isinstance(roi, RangeROI):
@@ -171,10 +186,15 @@ class AstropyRegionsHandler:
             elif not GLUE_LT_1_10_1:
                 from glue.core.roi import CircularAnnulusROI
                 if isinstance(roi, CircularAnnulusROI):
-                    return CircleAnnulusPixelRegion(
+                    reg = CircleAnnulusPixelRegion(
                         center=PixCoord(x=roi.xc, y=roi.yc),
                         inner_radius=roi.inner_radius,
                         outer_radius=roi.outer_radius)
+                    data = subset_state.xatt.parent
+                    if data is None or data.coords is None:
+                        return reg
+                    else:
+                        return reg.to_sky(data.coords)
                 else:
                     raise NotImplementedError("ROIs of type {0} are not yet supported"
                                               .format(roi.__class__.__name__))
@@ -212,10 +232,14 @@ class AstropyRegionsHandler:
 
         elif isinstance(subset_state, AndState):
             if _is_annulus(subset_state):
-                return CircleAnnulusPixelRegion(
+                reg = CircleAnnulusPixelRegion(
                     center=PixCoord(x=subset_state.state1.roi.xc, y=subset_state.state1.roi.yc),
                     inner_radius=subset_state.state2.state1.roi.radius,
                     outer_radius=subset_state.state1.roi.radius)
+                if data.coords is None:
+                    return reg
+                else:
+                    return reg.to_sky(data.coords)
             else:
                 temp_sub1 = Subset(data=data)
                 temp_sub1.subset_state = subset_state.state1
