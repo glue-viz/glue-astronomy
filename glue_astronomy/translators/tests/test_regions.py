@@ -5,7 +5,7 @@ from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from packaging.version import Version
 
-from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
+from regions import (RectanglePixelRegion, RectangleSkyRegion, PolygonPixelRegion, CirclePixelRegion,
                      EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion,
                      CircleAnnulusPixelRegion, PixCoord)
 
@@ -20,13 +20,15 @@ from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 from glue import __version__ as glue_version
 
 from glue_astronomy.translators.regions import (_annulus_to_subset_state, GLUE_LT_1_11,
-                                                AstropyRegionsHandler)
+                                                roi_subset_state_to_spatial)
+from glue_astronomy.translators.tests.test_nddata import WCS_CELESTIAL
 
 
 class TestAstropyRegions:
 
     def setup_method(self, method):
         self.data = Data(flux=np.ones((128, 256)))  # ny, nx
+        self.data.coords = WCS_CELESTIAL
         self.dc = DataCollection([self.data])
 
     def test_rectangular_roi(self):
@@ -46,14 +48,8 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
 
-        # Test direct call to handler
-        handler = AstropyRegionsHandler()
-        reg_2 = handler.to_object(subset_state)
-        assert isinstance(reg_2, RectanglePixelRegion)
-        assert_allclose(reg_2.center.x, 2.25)
-        assert_allclose(reg_2.center.y, 1.55)
-        assert_allclose(reg_2.width, 2.5)
-        assert_allclose(reg_2.height, 3.5)
+        reg_sky = roi_subset_state_to_spatial(subset_state, to_sky=True)
+        assert isinstance(reg_sky, RectangleSkyRegion)
 
     def test_polygonal_roi(self):
 

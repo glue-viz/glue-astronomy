@@ -12,7 +12,7 @@ from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion
                      PointPixelRegion, PixCoord, EllipsePixelRegion,
                      AnnulusPixelRegion, CircleAnnulusPixelRegion)
 
-__all__ = ["range_to_rect", "AstropyRegionsHandler"]
+__all__ = ["range_to_rect", "roi_subset_state_to_spatial", "AstropyRegionsHandler"]
 
 GLUE_LT_1_11 = Version(glue_version) < Version('1.11')
 
@@ -51,6 +51,51 @@ def range_to_rect(data, ori, low, high):
     width = xmax - xmin
     height = ymax - ymin
     return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
+
+
+def roi_subset_state_to_spatial(subset_state, to_sky=False):
+    """Translate the given ``RoiSubsetState`` containing ROI
+    that is compatible with 2D spatial regions to proper
+    ``regions`` shape. If ``to_sky=True`` is given, it will
+    return sky region from attached data WCS, otherwise it returns
+    pixel region.
+    """
+    roi = subset_state.roi
+
+    if isinstance(roi, (RectangularROI, EllipticalROI)):
+        angle = roi.theta * u.radian
+
+    if GLUE_LT_1_11 and isinstance(roi, (CircularROI, EllipticalROI)):
+        reg_cen = PixCoord(*roi.get_center())
+    elif isinstance(roi, PolygonalROI):
+        reg_cen = PixCoord(roi.vx, roi.vy)
+    else:
+        reg_cen = PixCoord(*roi.center())
+
+    if isinstance(roi, RectangularROI):
+        reg = RectanglePixelRegion(reg_cen, roi.width(), roi.height(), angle=angle)
+    elif isinstance(roi, PolygonalROI):
+        reg = PolygonPixelRegion(reg_cen)
+    elif isinstance(roi, CircularROI):
+        reg = CirclePixelRegion(reg_cen, roi.radius)
+    elif isinstance(roi, EllipticalROI):
+        reg = EllipsePixelRegion(reg_cen, roi.radius_x * 2, roi.radius_y * 2, angle=angle)
+    elif isinstance(roi, PointROI):
+        reg = PointPixelRegion(reg_cen)
+    elif not GLUE_LT_1_11:
+        from glue.core.roi import CircularAnnulusROI
+        if isinstance(roi, CircularAnnulusROI):
+            reg = CircleAnnulusPixelRegion(
+                center=reg_cen, inner_radius=roi.inner_radius, outer_radius=roi.outer_radius)
+        else:
+            raise NotImplementedError(f"ROIs of type {roi.__class__.__name__} are not yet supported")  # noqa: E501
+    else:
+        raise NotImplementedError(f"ROIs of type {roi.__class__.__name__} are not yet supported")
+
+    if to_sky:
+        reg = reg.to_sky(subset_state.xatt.parent.coords)
+
+    return reg
 
 
 def _is_annulus(subset_state):
@@ -111,6 +156,17 @@ def _annulus_to_subset_state(reg, data):
     return sbst
 
 
+def _get_xy_pix_att_from_subset(subset):
+    data = subset.data
+    if data.pixel_component_ids[0].axis == 0:
+        x_pix_att = data.pixel_component_ids[1]
+        y_pix_att = data.pixel_component_ids[0]
+    else:
+        x_pix_att = data.pixel_component_ids[0]
+        y_pix_att = data.pixel_component_ids[1]
+    return x_pix_att, y_pix_att
+
+
 @subset_state_translator('astropy-regions')
 class AstropyRegionsHandler:
 
@@ -123,95 +179,54 @@ class AstropyRegionsHandler:
         subset : `glue.core.subset.Subset`
             The subset to convert to a Region object
         """
-        if not isinstance(subset, RoiSubsetState):
-            subset_state = subset.subset_state
-            data = subset.data
-            if data.pixel_component_ids[0].axis == 0:
-                x_pix_att = data.pixel_component_ids[1]
-                y_pix_att = data.pixel_component_ids[0]
-            else:
-                x_pix_att = data.pixel_component_ids[0]
-                y_pix_att = data.pixel_component_ids[1]
-        else:  # Special handling if RoiSubsetState is passed in directly
-            subset_state = subset
-            data = None
-            x_pix_att = None
-            y_pix_att = None
+        subset_state = subset.subset_state
 
         if isinstance(subset_state, RoiSubsetState):
-
             roi = subset_state.roi
-            angle = getattr(roi, 'theta', 0) * u.radian
-            if isinstance(roi, RectangularROI):
-                xcen = 0.5 * (roi.xmin + roi.xmax)
-                ycen = 0.5 * (roi.ymin + roi.ymax)
-                width = roi.xmax - roi.xmin
-                height = roi.ymax - roi.ymin
-                return RectanglePixelRegion(PixCoord(xcen, ycen), width, height, angle=angle)
-            elif isinstance(roi, PolygonalROI):
-                return PolygonPixelRegion(PixCoord(roi.vx, roi.vy))
-            elif isinstance(roi, CircularROI):
-                xcen, ycen = roi.get_center() if GLUE_LT_1_11 else roi.center()
-                return CirclePixelRegion(PixCoord(xcen, ycen), roi.get_radius())
-            elif isinstance(roi, EllipticalROI):
-                return EllipsePixelRegion(
-                    PixCoord(roi.xc, roi.yc), roi.radius_x * 2, roi.radius_y * 2, angle=angle)
-            elif isinstance(roi, PointROI):
-                return PointPixelRegion(PixCoord(*roi.center()))
-            elif isinstance(roi, RangeROI):
-                return range_to_rect(data, roi.ori, roi.min, roi.max)
+
+            if isinstance(roi, RangeROI):
+                return range_to_rect(subset.data, roi.ori, roi.min, roi.max)
 
             elif isinstance(roi, AbstractMplRoi):
-                temp_sub = Subset(data)
+                temp_sub = Subset(subset.data)
+                x_pix_att, y_pix_att = _get_xy_pix_att_from_subset(subset)
                 temp_sub.subset_state = RoiSubsetState(x_pix_att, y_pix_att, roi.roi())
                 try:
                     return self.to_object(temp_sub)
                 except NotImplementedError:
-                    raise NotImplementedError("ROIs of type {0} are not yet supported"
-                                              .format(roi.__class__.__name__))
-
-            # There is a new way to make annulus in newer glue.
-            elif not GLUE_LT_1_11:
-                from glue.core.roi import CircularAnnulusROI
-                if isinstance(roi, CircularAnnulusROI):
-                    return CircleAnnulusPixelRegion(
-                        center=PixCoord(x=roi.xc, y=roi.yc),
-                        inner_radius=roi.inner_radius,
-                        outer_radius=roi.outer_radius)
-                else:
-                    raise NotImplementedError("ROIs of type {0} are not yet supported"
-                                              .format(roi.__class__.__name__))
+                    raise NotImplementedError(
+                        f"ROIs of type {roi.__class__.__name__} are not yet supported")
 
             else:
-                raise NotImplementedError("ROIs of type {0} are not yet supported"
-                                          .format(roi.__class__.__name__))
+                return roi_subset_state_to_spatial(subset_state)
 
         elif isinstance(subset_state, RangeSubsetState):
+            x_pix_att, y_pix_att = _get_xy_pix_att_from_subset(subset)
             if subset_state.att == x_pix_att:
-                return range_to_rect(data, 'x', subset_state.lo, subset_state.hi)
+                return range_to_rect(subset.data, 'x', subset_state.lo, subset_state.hi)
             elif subset_state.att == y_pix_att:
-                return range_to_rect(data, 'y', subset_state.lo, subset_state.hi)
+                return range_to_rect(subset.data, 'y', subset_state.lo, subset_state.hi)
             else:
                 raise ValueError('Range subset state att should be either x or y pixel coordinate')
 
         elif isinstance(subset_state, MultiRangeSubsetState):
+            x_pix_att, y_pix_att = _get_xy_pix_att_from_subset(subset)
             if subset_state.att == x_pix_att:
                 ori = 'x'
             elif subset_state.att == y_pix_att:
                 ori = 'y'
             else:
-                message = 'Multirange subset state att should be either x or y pixel coordinate'
-                raise ValueError(message)
+                raise ValueError('Multirange subset state att should be either x or y '
+                                 'pixel coordinate')
             if len(subset_state.pairs) == 0:
-                message = 'Multirange subset state should contain at least one range'
-                raise ValueError(message)
-            region = range_to_rect(data, ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
+                raise ValueError('Multirange subset state should contain at least one range')
+            region = range_to_rect(subset.data, ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
             for pair in subset_state.pairs[1:]:
-                region = region | range_to_rect(data, ori, pair[0], pair[1])
+                region = region | range_to_rect(subset.data, ori, pair[0], pair[1])
             return region
 
         elif isinstance(subset_state, PixelSubsetState):
-            return PointPixelRegion(PixCoord(*subset_state.get_xy(data, 1, 0)))
+            return PointPixelRegion(PixCoord(*subset_state.get_xy(subset.data, 1, 0)))
 
         elif isinstance(subset_state, AndState):
             if _is_annulus(subset_state):
@@ -220,6 +235,7 @@ class AstropyRegionsHandler:
                     inner_radius=subset_state.state2.state1.roi.radius,
                     outer_radius=subset_state.state1.roi.radius)
             else:
+                data = subset.data
                 temp_sub1 = Subset(data=data)
                 temp_sub1.subset_state = subset_state.state1
                 temp_sub2 = Subset(data=data)
@@ -227,6 +243,7 @@ class AstropyRegionsHandler:
                 return self.to_object(temp_sub1) & self.to_object(temp_sub2)
 
         elif isinstance(subset_state, OrState):
+            data = subset.data
             temp_sub1 = Subset(data=data)
             temp_sub1.subset_state = subset_state.state1
             temp_sub2 = Subset(data=data)
@@ -234,6 +251,7 @@ class AstropyRegionsHandler:
             return self.to_object(temp_sub1) | self.to_object(temp_sub2)
 
         elif isinstance(subset_state, XorState):
+            data = subset.data
             temp_sub1 = Subset(data=data)
             temp_sub1.subset_state = subset_state.state1
             temp_sub2 = Subset(data=data)
@@ -241,7 +259,7 @@ class AstropyRegionsHandler:
             return self.to_object(temp_sub1) ^ self.to_object(temp_sub2)
 
         elif isinstance(subset_state, MultiOrState):
-            temp_sub = Subset(data=data)
+            temp_sub = Subset(data=subset.data)
             temp_sub.subset_state = subset_state.states[0]
             region = self.to_object(temp_sub)
             for state in subset_state.states[1:]:
@@ -250,5 +268,5 @@ class AstropyRegionsHandler:
             return region
 
         else:
-            raise NotImplementedError("Subset states of type {0} are not supported"
-                                      .format(subset_state.__class__.__name__))
+            raise NotImplementedError(
+                f"Subset states of type {subset_state.__class__.__name__} are not supported")
