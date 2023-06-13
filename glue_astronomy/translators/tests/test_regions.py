@@ -5,7 +5,8 @@ from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from packaging.version import Version
 
-from regions import (RectanglePixelRegion, RectangleSkyRegion, PolygonPixelRegion, CirclePixelRegion,
+from regions import (RectanglePixelRegion, RectangleSkyRegion,
+                     PolygonPixelRegion, CirclePixelRegion,
                      EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion,
                      CircleAnnulusPixelRegion, PixCoord)
 

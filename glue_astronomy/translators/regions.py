@@ -220,7 +220,8 @@ class AstropyRegionsHandler:
                                  'pixel coordinate')
             if len(subset_state.pairs) == 0:
                 raise ValueError('Multirange subset state should contain at least one range')
-            region = range_to_rect(subset.data, ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
+            region = range_to_rect(
+                subset.data, ori, subset_state.pairs[0][0], subset_state.pairs[0][1])
             for pair in subset_state.pairs[1:]:
                 region = region | range_to_rect(subset.data, ori, pair[0], pair[1])
             return region
