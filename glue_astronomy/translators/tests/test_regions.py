@@ -21,7 +21,7 @@ from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 from glue import __version__ as glue_version
 
 from glue_astronomy.translators.regions import (_annulus_to_subset_state, GLUE_LT_1_11,
-                                                roi_subset_state_to_spatial)
+                                                roi_subset_state_to_region)
 from glue_astronomy.translators.tests.test_nddata import WCS_CELESTIAL
 
 
@@ -49,7 +49,7 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
 
-        reg_sky = roi_subset_state_to_spatial(subset_state, to_sky=True)
+        reg_sky = roi_subset_state_to_region(subset_state, to_sky=True)
         assert isinstance(reg_sky, RectangleSkyRegion)
 
     def test_polygonal_roi(self):

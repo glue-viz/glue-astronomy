@@ -12,7 +12,7 @@ from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion
                      PointPixelRegion, PixCoord, EllipsePixelRegion,
                      AnnulusPixelRegion, CircleAnnulusPixelRegion)
 
-__all__ = ["range_to_rect", "roi_subset_state_to_spatial", "AstropyRegionsHandler"]
+__all__ = ["range_to_rect", "roi_subset_state_to_region", "AstropyRegionsHandler"]
 
 GLUE_LT_1_11 = Version(glue_version) < Version('1.11')
 
@@ -53,7 +53,7 @@ def range_to_rect(data, ori, low, high):
     return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
 
 
-def roi_subset_state_to_spatial(subset_state, to_sky=False):
+def roi_subset_state_to_region(subset_state, to_sky=False):
     """Translate the given ``RoiSubsetState`` containing ROI
     that is compatible with 2D spatial regions to proper
     ``regions`` shape. If ``to_sky=True`` is given, it will
@@ -198,7 +198,7 @@ class AstropyRegionsHandler:
                         f"ROIs of type {roi.__class__.__name__} are not yet supported")
 
             else:
-                return roi_subset_state_to_spatial(subset_state)
+                return roi_subset_state_to_region(subset_state)
 
         elif isinstance(subset_state, RangeSubsetState):
             x_pix_att, y_pix_att = _get_xy_pix_att_from_subset(subset)
