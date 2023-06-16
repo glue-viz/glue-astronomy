@@ -1,5 +1,16 @@
 # Full changelog
 
+## v0.10.0 - 2023-06-16
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### New Features
+
+- Support sky regions and allow direct call to translator function by @pllim in https://github.com/glue-viz/glue-astronomy/pull/93
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.9.0...v0.10.0
+
 ## v0.9.0 - 2023-06-01
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
