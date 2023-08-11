@@ -1,6 +1,10 @@
 import numpy as np
 from astropy.utils.data import get_pkg_data_filename, get_pkg_data_path
-from glue.qglue import parse_data
+try:
+    from glue.core.parsers import parse_data
+except ImportError:  # older versions of glue-core
+    from glue.qglue import parse_data
+
 from spectral_cube import SpectralCube
 
 from glue_astronomy.io.spectral_cube.spectral_cube import is_spectral_cube, read_spectral_cube
@@ -42,7 +46,7 @@ def test_reader_casa():
     assert data.shape == (2, 3, 4)
 
 
-def test_qglue():
+def test_parse_data():
     cube = SpectralCube.read(get_pkg_data_filename('data/cube_3d.fits'))
     data = parse_data(cube, 'x')[0]
     assert data.label == 'x'
