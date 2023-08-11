@@ -3,7 +3,10 @@ import os
 from spectral_cube import SpectralCube, StokesSpectralCube
 
 from glue.core import Data
-from glue.config import data_factory, qglue_parser
+try:
+    from glue.config import data_factory, cli_parser
+except ImportError:  # older versions of glue-core
+    from glue.config import data_factory, qglue_parser as cli_parser
 from glue.core.data_factories.fits import is_fits
 from glue.core.coordinates import coordinates_from_wcs
 
@@ -69,6 +72,6 @@ def read_spectral_cube(filename, **kwargs):
     return spectral_cube_to_data(cube)
 
 
-@qglue_parser((SpectralCube, StokesSpectralCube))
+@cli_parser((SpectralCube, StokesSpectralCube))
 def parse_spectral_cube(cube, label):
     return [spectral_cube_to_data(cube, label=label)]
