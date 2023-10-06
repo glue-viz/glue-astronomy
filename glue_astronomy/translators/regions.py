@@ -53,12 +53,24 @@ def range_to_rect(data, ori, low, high):
     return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
 
 
-def roi_subset_state_to_region(subset_state, to_sky=False):
+def roi_subset_state_to_region(subset_state, to_sky=False, override_wcs=None):
     """Translate the given ``RoiSubsetState`` containing ROI
     that is compatible with 2D spatial regions to proper
     ``regions`` shape. If ``to_sky=True`` is given, it will
     return sky region from attached data WCS, otherwise it returns
     pixel region.
+
+    Parameters
+    ----------
+    subset_state : `glue.core.data.Data`
+        The 2D glue Data object on which the range subset is defined.
+    to_sky: bool
+        Specifies if the range limits are for the x-axis or y-axis respectively.
+    override_wcs : WCS object
+        A world coordinate system (WCS) transformation that
+        supports the `astropy shared interface for WCS
+        <https://docs.astropy.org/en/stable/wcs/wcsapi.html>`_ (e.g.,
+        `astropy.wcs.WCS`, `gwcs.wcs.WCS`).
     """
     roi = subset_state.roi
 
@@ -93,7 +105,10 @@ def roi_subset_state_to_region(subset_state, to_sky=False):
         raise NotImplementedError(f"ROIs of type {roi.__class__.__name__} are not yet supported")
 
     if to_sky:
-        reg = reg.to_sky(subset_state.xatt.parent.coords)
+        if override_wcs is not None:
+            reg = reg.to_sky(override_wcs)
+        else:
+            reg = reg.to_sky(subset_state.xatt.parent.coords)
 
     return reg
 
