@@ -56,9 +56,19 @@ def range_to_rect(data, ori, low, high):
 def roi_subset_state_to_region(subset_state, to_sky=False):
     """Translate the given ``RoiSubsetState`` containing ROI
     that is compatible with 2D spatial regions to proper
-    ``regions`` shape. If ``to_sky=True`` is given, it will
-    return sky region from attached data WCS, otherwise it returns
-    pixel region.
+    ``regions`` shape.
+
+    If ``to_sky`` is False, it will return the region in pixel coordinates.
+    If ``to_sky=True``, it will return the region transformed to sky
+    coordinates, per attached data WCS.
+
+    Parameters
+    ----------
+    subset_state : `~glue.core.subset.SubsetState`
+        ROI subset state.
+    to_sky: bool
+        If True, return region in celestial coordinates from attached data WCS.
+        (Default=False).
     """
     roi = subset_state.roi
 
@@ -92,9 +102,10 @@ def roi_subset_state_to_region(subset_state, to_sky=False):
     else:
         raise NotImplementedError(f"ROIs of type {roi.__class__.__name__} are not yet supported")
 
-    if to_sky:
+    if to_sky is True:
+        if subset_state.xatt.parent.coords is None:
+            raise ValueError("No WCS associated with subset data, can't do to_sky transformation.")
         reg = reg.to_sky(subset_state.xatt.parent.coords)
-
     return reg
 
 
