@@ -62,8 +62,8 @@ def roi_subset_state_to_region(subset_state, to_sky=False, override_wcs=None):
 
     Parameters
     ----------
-    subset_state : `glue.core.data.Data`
-        The 2D glue Data object on which the range subset is defined.
+    subset_state : `~glue.core.subset.SubsetState`
+        ROI subset state.
     to_sky: bool or WCS object
         If True, return region in celestial coordinates from attached data WCS.
         Optionally, if a WCS object - a world coordinate system (WCS)
