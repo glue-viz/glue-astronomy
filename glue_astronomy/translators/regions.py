@@ -64,13 +64,13 @@ def roi_subset_state_to_region(subset_state, to_sky=False, override_wcs=None):
     ----------
     subset_state : `glue.core.data.Data`
         The 2D glue Data object on which the range subset is defined.
-    to_sky: bool
-        Specifies if the range limits are for the x-axis or y-axis respectively.
-    override_wcs : WCS object
-        A world coordinate system (WCS) transformation that
-        supports the `astropy shared interface for WCS
-        <https://docs.astropy.org/en/stable/wcs/wcsapi.html>`_ (e.g.,
-        `astropy.wcs.WCS`, `gwcs.wcs.WCS`).
+    to_sky: bool or WCS object
+        If True, return region in celestial coordinates from attached data WCS.
+        Optionally, if a WCS object - a world coordinate system (WCS)
+        transformation that supports the `astropy shared interface for WCS
+        <https://docs.astropy.org/en/stable/wcs/wcsapi.html>`_
+        (e.g., `astropy.wcs.WCS`, `gwcs.wcs.WCS`) - is provided, then this will
+        override the WCS attached to the subset data.
     """
     roi = subset_state.roi
 
@@ -104,12 +104,11 @@ def roi_subset_state_to_region(subset_state, to_sky=False, override_wcs=None):
     else:
         raise NotImplementedError(f"ROIs of type {roi.__class__.__name__} are not yet supported")
 
-    if to_sky:
-        if override_wcs is not None:
-            reg = reg.to_sky(override_wcs)
+    if to_sky:  # either True or WCS object
+        if isinstance(to_sky, bool):
+        	reg = reg.to_sky(subset_state.xatt.parent.coords)
         else:
-            reg = reg.to_sky(subset_state.xatt.parent.coords)
-
+            reg = reg.to_sky(to_sky)
     return reg
 
 

@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from astropy import units as u
+from astropy.wcs import WCS
 from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from packaging.version import Version
@@ -49,8 +50,6 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
 
-        reg_sky = roi_subset_state_to_region(subset_state, to_sky=True)
-        assert isinstance(reg_sky, RectangleSkyRegion)
 
     def test_polygonal_roi(self):
 
@@ -488,3 +487,27 @@ class TestAstropyRegions:
                 match='Subset states of type InequalitySubsetState are not supported'):
             self.data.get_selection_definition(format='astropy-regions',
                                                subset_id='Flux-based selection')
+
+    def test_to_sky(self):
+
+        # test returning sky regions with `roi_subset_state_to_region`
+
+        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
+                                      self.data.pixel_component_ids[0],
+                                      CircularROI(1, 3.5, 0.75))
+
+        reg_sky = roi_subset_state_to_region(subset_state, to_sky=True)
+        assert isinstance(reg_sky, CircleSkyRegion)
+        assert_allclose(reg_sky.center.ra.deg, 1.99918828)
+        assert_allclose(reg_sky.center.dec.deg, 4.48805907)
+
+        # test overriding WCS
+        override_wcs = WCS(naxis=2)
+        override_wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN']
+        override_wcs.wcs.crval = [0, -90]
+
+        reg_sky = roi_subset_state_to_region(subset_state, to_sky=override_wcs)
+        assert isinstance(reg_sky, CircleSkyRegion)
+        assert_allclose(reg_sky.center.ra.deg, 23.96248897)
+        assert_allclose(reg_sky.center.dec.deg, -85.08764318)
+
