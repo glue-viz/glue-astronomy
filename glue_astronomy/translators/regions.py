@@ -7,6 +7,7 @@ from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 from glue import __version__ as glue_version
 
 from astropy import units as u
+from astropy.wcs.wcsapi import BaseHighLevelWCS
 from packaging.version import Version
 from regions import (RectanglePixelRegion, PolygonPixelRegion, CirclePixelRegion,
                      PointPixelRegion, PixCoord, EllipsePixelRegion,
@@ -104,11 +105,10 @@ def roi_subset_state_to_region(subset_state, to_sky=False, override_wcs=None):
     else:
         raise NotImplementedError(f"ROIs of type {roi.__class__.__name__} are not yet supported")
 
-    if to_sky:  # either True or WCS object
-        if isinstance(to_sky, bool):
-        	reg = reg.to_sky(subset_state.xatt.parent.coords)
-        else:
-            reg = reg.to_sky(to_sky)
+    if to_sky is True:
+        reg = reg.to_sky(subset_state.xatt.parent.coords)
+    elif isinstance(to_sky, BaseHighLevelWCS):
+        reg = reg.to_sky(to_sky)
     return reg
 
 

@@ -6,8 +6,8 @@ from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from packaging.version import Version
 
-from regions import (RectanglePixelRegion, RectangleSkyRegion,
-                     PolygonPixelRegion, CirclePixelRegion,
+from regions import (RectanglePixelRegion, PolygonPixelRegion,
+                     CirclePixelRegion, CircleSkyRegion,
                      EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion,
                      CircleAnnulusPixelRegion, PixCoord)
 
@@ -502,6 +502,7 @@ class TestAstropyRegions:
         assert_allclose(reg_sky.center.dec.deg, 4.48805907)
 
         # test overriding WCS
+
         override_wcs = WCS(naxis=2)
         override_wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN']
         override_wcs.wcs.crval = [0, -90]
