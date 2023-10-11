@@ -54,12 +54,16 @@ def range_to_rect(data, ori, low, high):
     return RectanglePixelRegion(PixCoord(xcen, ycen), width, height)
 
 
-def roi_subset_state_to_region(subset_state, to_sky=False, override_wcs=None):
+def roi_subset_state_to_region(subset_state, to_sky=False):
     """Translate the given ``RoiSubsetState`` containing ROI
     that is compatible with 2D spatial regions to proper
-    ``regions`` shape. If ``to_sky=True`` is given, it will
-    return sky region from attached data WCS, otherwise it returns
-    pixel region.
+    ``regions`` shape.
+
+    If ``to_sky`` is False, it will return the region in pixel coordinates.
+    If ``to_sky=True``, it will return the region transformed to sky
+    coordinates, per attached data WCS. Alternatively,  ``to_sky`` can be a WCS
+    object, which will override any WCS on the input subset state data and the
+    region will be returned in pixel coordinates.
 
     Parameters
     ----------
@@ -106,6 +110,8 @@ def roi_subset_state_to_region(subset_state, to_sky=False, override_wcs=None):
         raise NotImplementedError(f"ROIs of type {roi.__class__.__name__} are not yet supported")
 
     if to_sky is True:
+        if subset_state.xatt.parent.coords is None:
+            raise ValueError('Subset parent does not have a WCS.')
         reg = reg.to_sky(subset_state.xatt.parent.coords)
     elif isinstance(to_sky, BaseHighLevelWCS):
         reg = reg.to_sky(to_sky)

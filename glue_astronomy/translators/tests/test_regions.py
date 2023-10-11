@@ -6,10 +6,10 @@ from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from packaging.version import Version
 
-from regions import (RectanglePixelRegion, PolygonPixelRegion,
+from regions import (RectanglePixelRegion, RectangleSkyRegion, PolygonPixelRegion,
                      CirclePixelRegion, CircleSkyRegion,
-                     EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion,
-                     CircleAnnulusPixelRegion, PixCoord)
+                     EllipsePixelRegion, PointPixelRegion, PointSkyRegion,
+                     CompoundPixelRegion, CircleAnnulusPixelRegion, PixCoord)
 
 from glue.core import Data, DataCollection
 from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, EllipticalROI,
@@ -33,11 +33,25 @@ class TestAstropyRegions:
         self.data.coords = WCS_CELESTIAL
         self.dc = DataCollection([self.data])
 
-    def test_rectangular_roi(self):
+    @pytest.fixture
+    def setup_rois(self):
+        # define different ROI shapes that are used in several tests.
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      RectangularROI(1, 3.5, -0.2, 3.3))
+        rois = {'CircularROI': RoiSubsetState(self.data.pixel_component_ids[1],
+                                              self.data.pixel_component_ids[0],
+                                              CircularROI(1, 3.5, 0.75)),
+                'RectangularROI': RoiSubsetState(self.data.pixel_component_ids[1],
+                                                 self.data.pixel_component_ids[0],
+                                                 RectangularROI(0, 2, 0, 7)),
+                'PointROI': RoiSubsetState(self.data.pixel_component_ids[1],
+                                           self.data.pixel_component_ids[0],
+                                           PointROI(1, 3.5))
+                }
+        return rois
+
+    def test_rectangular_roi(self, setup_rois):
+
+        subset_state = setup_rois['RectangularROI']
 
         self.dc.new_subset_group(subset_state=subset_state, label='rectangular')
 
@@ -45,10 +59,10 @@ class TestAstropyRegions:
 
         assert isinstance(reg, RectanglePixelRegion)
 
-        assert_allclose(reg.center.x, 2.25)
-        assert_allclose(reg.center.y, 1.55)
-        assert_allclose(reg.width, 2.5)
-        assert_allclose(reg.height, 3.5)
+        assert_allclose(reg.center.x, 1)
+        assert_allclose(reg.center.y, 3.5)
+        assert_allclose(reg.width, 2)
+        assert_allclose(reg.height, 7)
 
 
     def test_polygonal_roi(self):
@@ -69,11 +83,9 @@ class TestAstropyRegions:
         assert_array_equal(reg.vertices.x, xv)
         assert_array_equal(reg.vertices.y, yv)
 
-    def test_circular_roi(self):
+    def test_circular_roi(self, setup_rois):
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      CircularROI(1, 3.5, 0.75))
+        subset_state = setup_rois['CircularROI']
 
         self.dc.new_subset_group(subset_state=subset_state, label='circular')
 
@@ -110,11 +122,9 @@ class TestAstropyRegions:
             assert_equal(reg.height, 10)
             assert_quantity_allclose(reg.angle, theta * u.radian)
 
-    def test_point_roi(self):
+    def test_point_roi(self, setup_rois):
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      PointROI(2.64, 5.4))
+        subset_state = setup_rois['PointROI']
 
         self.dc.new_subset_group(subset_state=subset_state, label='point')
 
@@ -122,8 +132,8 @@ class TestAstropyRegions:
 
         assert isinstance(reg, PointPixelRegion)
 
-        assert_equal(reg.center.x, 2.64)
-        assert_equal(reg.center.y, 5.4)
+        assert_equal(reg.center.x, 1)
+        assert_equal(reg.center.y, 3.5)
 
     def test_xregion_roi(self):
 
@@ -488,27 +498,32 @@ class TestAstropyRegions:
             self.data.get_selection_definition(format='astropy-regions',
                                                subset_id='Flux-based selection')
 
-    def test_to_sky(self):
+    @pytest.mark.parametrize("subset_state, output_pixel_shape, output_sky_shape",
+                            [('CircularROI', CirclePixelRegion, CircleSkyRegion),
+                             ('RectangularROI', RectanglePixelRegion, RectangleSkyRegion),
+                             ('PointROI', PointPixelRegion, PointSkyRegion)])
+    def test_roi_subset_state_to_region(self, subset_state, output_pixel_shape,
+                                        output_sky_shape, setup_rois):
+        # test returning pixel/sky regions with `roi_subset_state_to_region`
 
-        # test returning sky regions with `roi_subset_state_to_region`
+        subset_state = setup_rois[subset_state]
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      CircularROI(1, 3.5, 0.75))
+        # test that only pixel region is returned when to_sky is False
+        reg_pixel = roi_subset_state_to_region(subset_state, to_sky=False)
+        assert isinstance(reg_pixel, output_pixel_shape)
 
         reg_sky = roi_subset_state_to_region(subset_state, to_sky=True)
-        assert isinstance(reg_sky, CircleSkyRegion)
+        assert isinstance(reg_sky, output_sky_shape)
         assert_allclose(reg_sky.center.ra.deg, 1.99918828)
         assert_allclose(reg_sky.center.dec.deg, 4.48805907)
 
         # test overriding WCS
-
         override_wcs = WCS(naxis=2)
         override_wcs.wcs.ctype = ['RA---TAN', 'DEC--TAN']
         override_wcs.wcs.crval = [0, -90]
 
         reg_sky = roi_subset_state_to_region(subset_state, to_sky=override_wcs)
-        assert isinstance(reg_sky, CircleSkyRegion)
+        assert isinstance(reg_sky, output_sky_shape)
         assert_allclose(reg_sky.center.ra.deg, 23.96248897)
         assert_allclose(reg_sky.center.dec.deg, -85.08764318)
 
