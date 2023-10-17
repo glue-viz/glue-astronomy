@@ -69,7 +69,6 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
 
-
     def test_polygonal_roi(self):
 
         xv = [1.3, 2, 3, 1.5, 0.5]
@@ -503,9 +502,10 @@ class TestAstropyRegions:
                                                subset_id='Flux-based selection')
 
     @pytest.mark.parametrize("subset_state_name, output_pixel_shape, output_sky_shape, args",
-                            [('CircularROI', CirclePixelRegion, CircleSkyRegion, [1, 3.5, 0.75]),
-                             ('RectangularROI', RectanglePixelRegion, RectangleSkyRegion, [0, 2, 0, 7]),
-                             ('PointROI', PointPixelRegion, PointSkyRegion, [1, 3.5])])
+                             [('CircularROI', CirclePixelRegion, CircleSkyRegion, [1, 3.5, 0.75]),
+                              ('RectangularROI', RectanglePixelRegion, RectangleSkyRegion,
+                               [0, 2, 0, 7]),
+                              ('PointROI', PointPixelRegion, PointSkyRegion, [1, 3.5])])
     def test_roi_subset_state_to_region(self, subset_state_name, output_pixel_shape,
                                         output_sky_shape, args):
         # test returning pixel/sky regions with `roi_subset_state_to_region`
@@ -527,6 +527,7 @@ class TestAstropyRegions:
         assert_allclose(reg_sky.center.dec.deg, 4.48805907)
 
         # and that proper error is raised when there is no WCS
-        with pytest.raises(ValueError, match="No WCS associated with subset data, can't do to_sky transformation."):
+        with pytest.raises(ValueError, match="No WCS associated with subset data, "
+                                             "can't do to_sky transformation."):
             subset_state = self.setup_rois(subset_state_name, *args, without_wcs=True)
             roi_subset_state_to_region(subset_state, to_sky=True)
