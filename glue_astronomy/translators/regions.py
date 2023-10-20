@@ -66,7 +66,7 @@ def roi_subset_state_to_region(subset_state, to_sky=False):
     ----------
     subset_state : `~glue.core.subset.SubsetState`
         ROI subset state.
-    to_sky: bool
+    to_sky : bool
         If True, return region in celestial coordinates from attached data WCS.
         (Default=False).
     """
