@@ -5,10 +5,10 @@ from astropy.tests.helper import assert_quantity_allclose
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from packaging.version import Version
 
-from regions import (RectanglePixelRegion, RectangleSkyRegion,
-                     PolygonPixelRegion, CirclePixelRegion,
-                     EllipsePixelRegion, PointPixelRegion, CompoundPixelRegion,
-                     CircleAnnulusPixelRegion, PixCoord)
+from regions import (RectanglePixelRegion, RectangleSkyRegion, PolygonPixelRegion,
+                     CirclePixelRegion, CircleSkyRegion,
+                     EllipsePixelRegion, PointPixelRegion, PointSkyRegion,
+                     CompoundPixelRegion, CircleAnnulusPixelRegion, PixCoord)
 
 from glue.core import Data, DataCollection
 from glue.core.roi import (RectangularROI, PolygonalROI, CircularROI, EllipticalROI,
@@ -32,11 +32,31 @@ class TestAstropyRegions:
         self.data.coords = WCS_CELESTIAL
         self.dc = DataCollection([self.data])
 
+    def setup_rois(self, roi_shape_name, *args, without_wcs=False):
+        # define different ROI shapes that are used in several tests.
+
+        data = self.data
+
+        if without_wcs:
+            data = Data(flux=np.ones((128, 256)))  # define Data w/o WCS
+
+        if roi_shape_name == 'CircularROI':
+            roi = CircularROI(*args)
+        if roi_shape_name == 'RectangularROI':
+            roi = RectangularROI(*args)
+        if roi_shape_name == 'PointROI':
+            roi = PointROI(*args)
+        if roi_shape_name == 'PolygonalROI':
+            roi = PolygonalROI(*args)
+
+        return RoiSubsetState(data.pixel_component_ids[1],
+                              data.pixel_component_ids[0],
+                              roi)
+
     def test_rectangular_roi(self):
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      RectangularROI(1, 3.5, -0.2, 3.3))
+        subset_state = self.setup_rois('RectangularROI',
+                                       *[1, 3.5, -0.2, 3.3])
 
         self.dc.new_subset_group(subset_state=subset_state, label='rectangular')
 
@@ -49,17 +69,13 @@ class TestAstropyRegions:
         assert_allclose(reg.width, 2.5)
         assert_allclose(reg.height, 3.5)
 
-        reg_sky = roi_subset_state_to_region(subset_state, to_sky=True)
-        assert isinstance(reg_sky, RectangleSkyRegion)
-
     def test_polygonal_roi(self):
 
         xv = [1.3, 2, 3, 1.5, 0.5]
         yv = [10, 20.20, 30, 25, 17.17]
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      PolygonalROI(xv, yv))
+        subset_state = self.setup_rois('PolygonalROI',
+                                       *[xv, yv])
 
         self.dc.new_subset_group(subset_state=subset_state, label='polygon')
 
@@ -72,9 +88,7 @@ class TestAstropyRegions:
 
     def test_circular_roi(self):
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      CircularROI(1, 3.5, 0.75))
+        subset_state = self.setup_rois('CircularROI', *[1, 3.5, 0.75])
 
         self.dc.new_subset_group(subset_state=subset_state, label='circular')
 
@@ -113,9 +127,7 @@ class TestAstropyRegions:
 
     def test_point_roi(self):
 
-        subset_state = RoiSubsetState(self.data.pixel_component_ids[1],
-                                      self.data.pixel_component_ids[0],
-                                      PointROI(2.64, 5.4))
+        subset_state = self.setup_rois('PointROI', *[2.64, 5.4])
 
         self.dc.new_subset_group(subset_state=subset_state, label='point')
 
@@ -488,3 +500,34 @@ class TestAstropyRegions:
                 match='Subset states of type InequalitySubsetState are not supported'):
             self.data.get_selection_definition(format='astropy-regions',
                                                subset_id='Flux-based selection')
+
+    @pytest.mark.parametrize("subset_state_name, output_pixel_shape, output_sky_shape, args",
+                             [('CircularROI', CirclePixelRegion, CircleSkyRegion, [1, 3.5, 0.75]),
+                              ('RectangularROI', RectanglePixelRegion, RectangleSkyRegion,
+                               [0, 2, 0, 7]),
+                              ('PointROI', PointPixelRegion, PointSkyRegion, [1, 3.5])])
+    def test_roi_subset_state_to_region(self, subset_state_name, output_pixel_shape,
+                                        output_sky_shape, args):
+        # test returning pixel/sky regions with `roi_subset_state_to_region`
+        # parameterized over multiple shapes with various attributes, so just
+        # check transformation of center coordinates.
+
+        subset_state = self.setup_rois(subset_state_name, *args)
+
+        # test that only pixel region is returned when to_sky is False
+        reg_pixel = roi_subset_state_to_region(subset_state, to_sky=False)
+        assert isinstance(reg_pixel, output_pixel_shape)
+        assert_allclose(reg_pixel.center.x, 1)
+        assert_allclose(reg_pixel.center.y, 3.5)
+
+        # test sky region
+        reg_sky = roi_subset_state_to_region(subset_state, to_sky=True)
+        assert isinstance(reg_sky, output_sky_shape)
+        assert_allclose(reg_sky.center.ra.deg, 1.99918828)
+        assert_allclose(reg_sky.center.dec.deg, 4.48805907)
+
+        # and that proper error is raised when there is no WCS
+        with pytest.raises(ValueError, match="No WCS associated with subset data, "
+                                             "can't do to_sky transformation."):
+            subset_state = self.setup_rois(subset_state_name, *args, without_wcs=True)
+            roi_subset_state_to_region(subset_state, to_sky=True)
