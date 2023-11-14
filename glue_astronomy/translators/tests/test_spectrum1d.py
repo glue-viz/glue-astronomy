@@ -305,3 +305,22 @@ def test_spectrum1d_2d_data(spec_ndim):
 
     # The metadata should still be present
     assert spec_new.meta['instrument'] == 'spamcam'
+
+
+@pytest.mark.parametrize('maskdtype', (bool, int))
+def test_spectrum1d_mask_roundtrip(maskdtype):
+    maskvals = np.array([1, 0, 2, 0], dtype=maskdtype)
+    # for a bool dtype this becomes [True, False, True, False]
+
+    spec = Spectrum1D(spectral_axis=[1, 2, 3, 4]*u.micron,
+                      flux=[11, 12.5, 13, 14]*u.Jy,
+                      mask=maskvals)
+
+    data_collection = DataCollection()
+    data_collection['spectrum'] = spec
+
+    rtspec = data_collection['spectrum'].get_object(spec.__class__)
+
+    assert np.all(rtspec.mask == maskvals)
+    assert u.allclose(rtspec.spectral_axis, spec.spectral_axis)
+    assert u.allclose(rtspec.flux, spec.flux)
