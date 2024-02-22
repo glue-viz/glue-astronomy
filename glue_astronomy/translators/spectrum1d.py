@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from glue.config import data_translator
 from glue.core import Data, Subset
@@ -157,9 +158,8 @@ class SpecutilsHandler:
 
     def to_data(self, obj):
 
-        # Glue expects spectral axis first for cubes (opposite of specutils).
-        # Swap the spectral axis to first here. to_object doesn't need this because
-        # Spectrum1D does it automatically on initialization.
+        # specutils 2.0 doesn't care where the spectral axis anymore, but we still need
+        # PaddedSpectrumWCS for now
         if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
             data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim, obj.spectral_axis_index))
         else:
@@ -234,14 +234,19 @@ class SpecutilsHandler:
                     wcs_args[spectral_axis_index] = np.arange(data.shape[spectral_axis_index])
                     wcs_args.reverse()
                     spectral_and_spatial = data.coords.pixel_to_world(*wcs_args)
-                    spectral_axis = [x for x in spectral_and_spatial if isinstance(x, SpectralCoord)][0]
+                    spectral_axis = [x for x in spectral_and_spatial if isinstance(x, SpectralCoord)][0]  # noqa
                     kwargs = {'spectral_axis': spectral_axis}
 
                 else:
-                    # In this case we'll need to resample the flux onto a common spectral axis before collapsing
+                    # In this case the flux should be resampled onto a common spectral axis
+                    # before collapsing
+                    warnings.warn('Spectral solution is not the same at all spatial points,'
+                                  ' collapsing may give inaccurate results.')
                     kwargs = {'wcs': data.coords}
             else:
-                raise ValueError('Can only use statistic= if the Data object has a FITS WCS')
+                # Shouldn't get here anymore, but just in case.
+                raise ValueError('Can only use statistic= if the Data object has a GWCS'
+                                 ' or FITS WCS')
 
         elif isinstance(data.coords, SpectralCoordinates):
 
