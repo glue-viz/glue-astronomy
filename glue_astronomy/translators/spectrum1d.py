@@ -130,6 +130,31 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 @data_translator(Spectrum1D)
 class SpecutilsHandler:
 
+    def _has_homogenous_spectral_solution(self, data):
+        # Check to see if a GWCS gives the same spectral solution at every spatial point
+        if isinstance(data, Spectrum1D):
+            spectral_axis_index = data.spectral_axis_index
+            data_ndim = data.flux.ndim
+        else:
+            spectral_axis_index = data.meta['spectral_axis_index']
+            data_ndim = data.ndim
+
+        axes = tuple(i for i in range(data_ndim) if i != spectral_axis_index)
+
+        corners = list(np.zeros((data_ndim, 4)))
+        for i in axes:
+            corners[i][1] = data.shape[i]-1
+            corners[i][3] = data.shape[i]-1
+        corners[spectral_axis_index][2] = data.shape[spectral_axis_index]-1
+        corners[spectral_axis_index][3] = data.shape[spectral_axis_index]-1
+        # WCS order vs array order
+        corners.reverse()
+
+        test_world = data.coords.pixel_to_world(*corners)
+        spec_coord = [x for x in test_world if isinstance(x, SpectralCoord)][0]
+
+        return np.isclose(spec_coord[0], spec_coord[1]) and np.isclose(spec_coord[2], spec_coord[3])  # noqa
+
     def to_data(self, obj):
 
         # Glue expects spectral axis first for cubes (opposite of specutils).
@@ -202,21 +227,7 @@ class SpecutilsHandler:
             elif isinstance(data.coords, GWCS):
                 # Check if we need to resample to a common spectral axis for all spatial
                 # points before collapsing or if all spaxels have same solution
-                corners = list(np.zeros((data.ndim, 4)))
-                # Need to debug these calculations
-                for i in axes:
-                    corners[i][1] = data.shape[i]-1
-                    corners[i][3] = data.shape[i]-1
-                corners[spectral_axis_index][2] = data.shape[spectral_axis_index]-1
-                corners[spectral_axis_index][3] = data.shape[spectral_axis_index]-1
-                # WCS order vs array order
-                corners.reverse()
-
-                test_world = data.coords.pixel_to_world(*corners)
-                spec_coord = [x for x in test_world if isinstance(x, SpectralCoord)][0]
-
-                if (np.isclose(spec_coord[0], spec_coord[1]) and
-                               np.isclose(spec_coord[2], spec_coord[3])):
+                if self._has_homogenous_spectral_solution(data):
                     wcs_args = []
                     for i in range(len(data.shape)):
                         wcs_args.append(np.zeros(data.shape[spectral_axis_index]))
