@@ -136,10 +136,8 @@ class SpecutilsHandler:
         # Swap the spectral axis to first here. to_object doesn't need this because
         # Spectrum1D does it automatically on initialization.
         if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
-            print("ndim>1, world_n_dim==1")
             data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim, obj.spectral_axis_index))
         else:
-            print("ndim and world_n_dim match?")
             data = Data(coords=obj.wcs)
 
         data['flux'] = obj.flux
@@ -197,7 +195,6 @@ class SpecutilsHandler:
 
             spectral_axis_index = data.meta['spectral_axis_index']
             axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
-            print(axes)
             if isinstance(data.coords, PaddedSpectrumWCS):
                 kwargs = {'wcs': data.coords.spectral_wcs}
             elif isinstance(data.coords, WCS):
@@ -205,29 +202,32 @@ class SpecutilsHandler:
             elif isinstance(data.coords, GWCS):
                 # Check if we need to resample to a common spectral axis for all spatial
                 # points before collapsing or if all spaxels have same solution
-                corners = [np.zeros(4)]*data.ndim
+                corners = list(np.zeros((data.ndim, 4)))
                 # Need to debug these calculations
                 for i in axes:
                     corners[i][1] = data.shape[i]-1
                     corners[i][3] = data.shape[i]-1
                 corners[spectral_axis_index][2] = data.shape[spectral_axis_index]-1
                 corners[spectral_axis_index][3] = data.shape[spectral_axis_index]-1
-                print(f"corners: {corners}")
+                # WCS order vs array order
+                corners.reverse()
 
                 test_world = data.coords.pixel_to_world(*corners)
                 spec_coord = [x for x in test_world if isinstance(x, SpectralCoord)][0]
-                print(test_world)
-                print(spec_coord)
+
                 if (np.isclose(spec_coord[0], spec_coord[1]) and
                                np.isclose(spec_coord[2], spec_coord[3])):
                     wcs_args = []
-                    for i in range(len(data.flux.shape)):
+                    for i in range(len(data.shape)):
                         wcs_args.append(np.zeros(data.shape[spectral_axis_index]))
                     wcs_args[spectral_axis_index] = np.arange(data.shape[spectral_axis_index])
-                    spectral_axis = data.coords.pixel_to_world(*wcs_args)
+                    wcs_args.reverse()
+                    spectral_and_spatial = data.coords.pixel_to_world(*wcs_args)
+                    spectral_axis = [x for x in spectral_and_spatial if isinstance(x, SpectralCoord)][0]
                     kwargs = {'spectral_axis': spectral_axis}
 
                 else:
+                    # In this case we'll need to resample the flux onto a common spectral axis before collapsing
                     kwargs = {'wcs': data.coords}
             else:
                 raise ValueError('Can only use statistic= if the Data object has a FITS WCS')
@@ -309,6 +309,4 @@ class SpecutilsHandler:
         data_kwargs = parse_attributes(
             [attribute] if not hasattr(attribute, '__len__') else attribute)
 
-        print(f"data_kwargs: {data_kwargs}")
-        print(f"wcs: {kwargs['wcs']}")
         return Spectrum1D(**data_kwargs, **kwargs)
