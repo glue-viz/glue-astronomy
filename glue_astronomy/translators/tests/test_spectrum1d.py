@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
-from specutils import Spectrum1D
+from specutils import Spectrum
 
 from astropy import units as u
 from astropy.wcs import WCS
@@ -27,14 +27,14 @@ def test_to_spectrum1d():
     data = Data(label='spectrum', coords=wcs)
     data.add_component(Component(np.array([3.4, 2.3, -1.1, 0.3]), units='Jy'), 'x')
 
-    spec = data.get_object(Spectrum1D, attribute=data.id['x'])
+    spec = data.get_object(Spectrum, attribute=data.id['x'])
 
     assert_quantity_allclose(spec.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
     assert_quantity_allclose(spec.flux, [3.4, 2.3, -1.1, 0.3] * u.Jy)
 
     data.add_subset(data.id['x'] > 1, label='bright')
 
-    spec_subset = data.get_subset_object(cls=Spectrum1D, subset_id=0,
+    spec_subset = data.get_subset_object(cls=Spectrum, subset_id=0,
                                          attribute=data.id['x'])
 
     assert_quantity_allclose(spec_subset.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
@@ -52,7 +52,7 @@ def test_to_spectrum1d_unitless():
     data = Data(label='spectrum', coords=wcs)
     data.add_component(Component(np.array([3.4, 2.3, -1.1, 0.3])), 'x')
 
-    spec = data.get_object(Spectrum1D, attribute=data.id['x'])
+    spec = data.get_object(Spectrum, attribute=data.id['x'])
 
     assert_quantity_allclose(spec.spectral_axis, [1, 2, 3, 4] * u.m / u.s)
     assert_quantity_allclose(spec.flux, [3.4, 2.3, -1.1, 0.3] * u.one)
@@ -64,7 +64,7 @@ def test_to_spectrum1d_invalid():
     data.add_component(Component(np.array([3.4, 2.3, -1.1, 0.3]), units='Jy'), 'x')
 
     with pytest.raises(TypeError) as exc:
-        data.get_object(Spectrum1D, attribute=data.id['x'])
+        data.get_object(Spectrum, attribute=data.id['x'])
     assert exc.value.args[0] == ('data.coords should be an instance of WCS '
                                  'or SpectralCoordinates')
 
@@ -79,7 +79,7 @@ def test_to_spectrum1d_from_3d_cube():
     data = Data(label='spectral-cube', coords=wcs)
     data.add_component(Component(np.ones((3, 4, 5)), units='Jy'), 'x')
 
-    spec = data.get_object(Spectrum1D, attribute=data.id['x'], statistic='sum')
+    spec = data.get_object(Spectrum, attribute=data.id['x'], statistic='sum')
 
     assert_quantity_allclose(spec.spectral_axis, [1, 2, 3] * u.m / u.s)
     assert_quantity_allclose(spec.flux, [20, 20, 20] * u.Jy)
@@ -95,7 +95,7 @@ def test_to_spectrum1d_with_spectral_coordinates():
     assert_allclose(data.coords.pixel_to_world_values([0, 0.5, 1, 1.5, 2]),
                     [1, 2.5, 4, 7, 10])
 
-    spec = data.get_object(Spectrum1D, attribute=data.id['x'])
+    spec = data.get_object(Spectrum, attribute=data.id['x'])
     assert_quantity_allclose(spec.spectral_axis, [1, 4, 10] * u.micron)
     assert_quantity_allclose(spec.flux, [3, 4, 5] * u.Jy)
 
@@ -107,18 +107,18 @@ def test_to_spectrum1d_default_attribute():
     data = Data(label='spectrum1d', coords=coords)
 
     with pytest.raises(ValueError) as exc:
-        data.get_object(Spectrum1D)
+        data.get_object(Spectrum)
     assert exc.value.args[0] == 'Data object has no attributes.'
 
     data.add_component(Component(np.array([3, 4, 5]), units='Jy'), 'x')
 
-    spec = data.get_object(Spectrum1D)
+    spec = data.get_object(Spectrum)
     assert_quantity_allclose(spec.flux, [3, 4, 5] * u.Jy)
 
     data.add_component(Component(np.array([3, 4, 5]), units='Jy'), 'y')
 
     with pytest.raises(ValueError) as exc:
-        data.get_object(Spectrum1D)
+        data.get_object(Spectrum)
     assert exc.value.args[0] == ('Data object has more than one attribute, so '
                                  'you will need to specify which one to use as '
                                  'the flux for the spectrum using the attribute= '
@@ -130,7 +130,7 @@ def test_to_spectrum1d_default_attribute():
 def test_from_spectrum1d(mode):
 
     if mode == 'wcs3d':
-        # This test is intended to be run with the version of Spectrum1D based
+        # This test is intended to be run with the version of Spectrum based
         # on NDCube 2.0
         pytest.importorskip("ndcube", minversion="1.99")
 
@@ -155,7 +155,7 @@ def test_from_spectrum1d(mode):
             kwargs = {'spectral_axis': [1, 2, 3, 4] * u.Hz,
                       'uncertainty': uncertainty, 'mask': mask}
 
-    spec = Spectrum1D(flux, **kwargs)
+    spec = Spectrum(flux, **kwargs)
 
     data_collection = DataCollection()
 
@@ -178,7 +178,7 @@ def test_from_spectrum1d(mode):
 
     # Check round-tripping via single attribute reference
     spec_new = data.get_object(attribute='flux', statistic=None)
-    assert isinstance(spec_new, Spectrum1D)
+    assert isinstance(spec_new, Spectrum)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     if mode == 'wcs3d':
         assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
@@ -188,7 +188,7 @@ def test_from_spectrum1d(mode):
 
     # Check complete round-tripping, including uncertainties
     spec_new = data.get_object(statistic=None)
-    assert isinstance(spec_new, Spectrum1D)
+    assert isinstance(spec_new, Spectrum)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     if mode == 'wcs3d':
         assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
@@ -204,8 +204,8 @@ def test_from_spectrum1d(mode):
 @pytest.mark.parametrize('spec_ndim', (2, 3))
 def test_spectrum1d_2d_data(spec_ndim):
 
-    # This test makes sure that 2D spectra represented as Spectrum1D round-trip
-    # Note that Spectrum1D will typically have a 1D spectral WCS even if the
+    # This test makes sure that 2D spectra represented as Spectrum round-trip
+    # Note that Spectrum will typically have a 1D spectral WCS even if the
     # data is N-dimensional, so we need to pad the WCS before passing it to
     # glue and un-pad it when translating back.
 
@@ -221,7 +221,7 @@ def test_spectrum1d_2d_data(spec_ndim):
     elif spec_ndim == 3:
         flux = np.ones((3, 3, 2)) * u.Unit('Jy')
 
-    spec = Spectrum1D(flux, wcs=wcs, meta={'instrument': 'spamcam'})
+    spec = Spectrum(flux, wcs=wcs, meta={'instrument': 'spamcam'})
 
     assert spec.data.ndim == spec_ndim
     assert spec.wcs.naxis == 1
@@ -296,7 +296,7 @@ def test_spectrum1d_2d_data(spec_ndim):
 
     # Check round-tripping of translation
     spec_new = data.get_object(statistic=None)
-    assert isinstance(spec_new, Spectrum1D)
+    assert isinstance(spec_new, Spectrum)
 
     # The WCS object should be the same
     assert spec_new.wcs.pixel_n_dim == 1
