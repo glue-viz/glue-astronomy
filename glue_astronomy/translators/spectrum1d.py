@@ -15,7 +15,7 @@ from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
-from specutils import Spectrum1D
+from specutils import Spectrum
 
 UNCERT_REF = {'std': StdDevUncertainty,
               'var': VarianceUncertainty,
@@ -35,7 +35,7 @@ UCD_TO_SPECTRAL_NAME = {'em.freq': 'Frequency',
 
 class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
-    # Spectrum1D can use a 1D spectral WCS even for n-dimensional
+    # Spectrum can use a 1D spectral WCS even for n-dimensional
     # datasets while glue always needs the dimensionality to match,
     # so this class pads the WCS so that it is n-dimensional.
 
@@ -128,12 +128,12 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         return False
 
 
-@data_translator(Spectrum1D)
+@data_translator(Spectrum)
 class SpecutilsHandler:
 
     def _has_homogenous_spectral_solution(self, data):
         # Check to see if a GWCS gives the same spectral solution at every spatial point
-        if isinstance(data, Spectrum1D):
+        if isinstance(data, Spectrum):
             spectral_axis_index = data.spectral_axis_index
             data_ndim = data.flux.ndim
         else:
@@ -187,14 +187,14 @@ class SpecutilsHandler:
 
     def to_object(self, data_or_subset, attribute=None, statistic='mean'):
         """
-        Convert a glue Data object to a Spectrum1D object.
+        Convert a glue Data object to a Spectrum object.
 
         Parameters
         ----------
         data_or_subset : `glue.core.data.Data` or `glue.core.subset.Subset`
-            The data to convert to a Spectrum1D object
+            The data to convert to a Spectrum object
         attribute : `glue.core.component_id.ComponentID`
-            The attribute to use for the Spectrum1D data
+            The attribute to use for the Spectrum data
         statistic : {'minimum', 'maximum', 'mean', 'median', 'sum', 'percentile'}
             The statistic to use to collapse the dataset
         """
@@ -325,4 +325,4 @@ class SpecutilsHandler:
         data_kwargs = parse_attributes(
             [attribute] if not hasattr(attribute, '__len__') else attribute)
 
-        return Spectrum1D(**data_kwargs, **kwargs)
+        return Spectrum(**data_kwargs, **kwargs)
