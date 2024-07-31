@@ -1,14 +1,21 @@
 import numpy as np
 
 from specreduce import tracing
-from specreduce.utils.synth_data import make_2dspec_image
+
+# renamed in specreduce 1.4 and `add_noise` option added (requires photutils)
+try:
+    from specreduce.utils.synth_data import make_2d_trace_image
+    trace_args = dict(add_noise=False)
+except ImportError:
+    from specreduce.utils.synth_data import make_2dspec_image as make_2d_trace_image
+    trace_args = dict()
 
 from glue.core import Data, DataCollection
 
 
 def test_trace():
 
-    image = make_2dspec_image()
+    image = make_2d_trace_image(**trace_args)
     trace = tracing.FlatTrace(image, 5)
 
     data_collection = DataCollection()
