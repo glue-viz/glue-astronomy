@@ -11,7 +11,7 @@ from astropy.wcs import WCS
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
-from glue.core.coordinates import Coordinates
+from glue.core.coordinates import Coordinates, IdentityCoordinates
 
 WCS_CELESTIAL = WCS(naxis=2)
 WCS_CELESTIAL.wcs.ctype = ['RA---TAN', 'DEC--TAN']
@@ -222,3 +222,17 @@ def test_meta_round_trip():
         assert len(image_new.meta) == 2
         assert image_new.meta['BUNIT'] == 'Jy/beam'
         assert image_new.meta['some_variable'] == 10
+
+
+def test_other_coords():
+    coords = IdentityCoordinates(n_dim=2)
+
+    flux = [[2, 3], [4, 5]] * u.Jy
+    ndd = NDDataArray(data=flux)
+
+    data_collection = DataCollection()
+
+    data_collection['image'] = ndd
+    data_collection['image'].coords = coords
+    round_trip_ndd = data_collection['image'].get_object(cls=NDDataArray)
+    assert round_trip_ndd.shape == (2, 2)
