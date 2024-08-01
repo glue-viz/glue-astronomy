@@ -77,7 +77,7 @@ class NDDataArrayHandler:
 
         if isinstance(data.coords, (WCS, BaseHighLevelWCS, SpectralCoordinates)):
             wcs = data.coords
-        elif type(data.coords) is Coordinates or data.coords is None:
+        elif isinstance(data.coords, Coordinates) or data.coords is None:
             wcs = None
         else:
             raise TypeError('data.coords should be an instance of Coordinates or WCS')
