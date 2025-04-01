@@ -133,12 +133,8 @@ class SpecutilsHandler:
 
     def _has_homogenous_spectral_solution(self, data):
         # Check to see if a GWCS gives the same spectral solution at every spatial point
-        if isinstance(data, Spectrum):
-            spectral_axis_index = data.spectral_axis_index
-            data_ndim = data.flux.ndim
-        else:
-            spectral_axis_index = data.meta['spectral_axis_index']
-            data_ndim = data.ndim
+        spectral_axis_index = data.meta['spectral_axis_index']
+        data_ndim = data.ndim
 
         axes = tuple(i for i in range(data_ndim) if i != spectral_axis_index)
 
@@ -152,7 +148,12 @@ class SpecutilsHandler:
         corners.reverse()
 
         test_world = data.coords.pixel_to_world(*corners)
-        spec_coord = [x for x in test_world if isinstance(x, SpectralCoord)][0]
+        spec_coord = [x for x in test_world if isinstance(x, SpectralCoord)]
+        if len(spec_coord):
+            spec_coord = spec_coord[0]
+        else:
+            # In this case we had spectral axis in pixels
+            spec_coord = test_world[data_ndim - 1 - spectral_axis_index]
 
         return np.isclose(spec_coord[0], spec_coord[1]) and np.isclose(spec_coord[2], spec_coord[3])  # noqa
 
@@ -185,7 +186,8 @@ class SpecutilsHandler:
 
         return data
 
-    def to_object(self, data_or_subset, attribute=None, statistic='mean'):
+    def to_object(self, data_or_subset, attribute=None, statistic='mean',
+                  spectral_axis_index=None):
         """
         Convert a glue Data object to a Spectrum object.
 
@@ -197,6 +199,9 @@ class SpecutilsHandler:
             The attribute to use for the Spectrum data
         statistic : {'minimum', 'maximum', 'mean', 'median', 'sum', 'percentile'}
             The statistic to use to collapse the dataset
+        spectral_axis_index : integer
+            Used to specify which axis of a multi-dimensional spectrum is the
+            spectral axis if it is ambiguous
         """
 
         if isinstance(data_or_subset, Subset):
@@ -234,7 +239,13 @@ class SpecutilsHandler:
                     wcs_args[spectral_axis_index] = np.arange(data.shape[spectral_axis_index])
                     wcs_args.reverse()
                     spectral_and_spatial = data.coords.pixel_to_world(*wcs_args)
-                    spectral_axis = [x for x in spectral_and_spatial if isinstance(x, SpectralCoord)][0]  # noqa
+                    spectral_axis = [x for x in spectral_and_spatial if isinstance(x, SpectralCoord)]  # noqa
+                    if len(spectral_axis):
+                        spectral_axis = spectral_axis[0]  # noqa
+                    else:
+                        spectral_axis = spectral_and_spatial[data.ndim - 1 - spectral_axis_index]
+                        if spectral_axis.unit == "":
+                            spectral_axis = spectral_axis * u.pixel
                     kwargs = {'spectral_axis': spectral_axis}
 
                 else:
@@ -258,6 +269,10 @@ class SpecutilsHandler:
 
         # Copy over metadata
         kwargs['meta'] = data.meta.copy()
+
+        # Add this if needed
+        if spectral_axis_index is not None and statistic is None:
+            kwargs['spectral_axis_index'] = spectral_axis_index
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
