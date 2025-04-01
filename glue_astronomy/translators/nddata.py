@@ -191,7 +191,7 @@ class StdDevUncertaintyHandler:
             data = data_or_subset
 
         if attribute is None and "flux" in data.main_components:
-            attribute="flux"
+            attribute = "flux"
         attribute = _get_attribute(attribute, data)
         component = data.get_component(attribute)
         values = data.get_data(attribute)
