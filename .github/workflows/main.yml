@@ -33,7 +33,7 @@ jobs:
 
       envs: |
         # Standard tests
-        - linux: py311-test
+        - linux: py310-test
         - linux: py312-test
         - linux: py311-test-dev
         - linux: py312-test-dev
