@@ -33,18 +33,16 @@ jobs:
 
       envs: |
         # Standard tests
-        - linux: py38-test
-        - linux: py39-test
+        - linux: py311-test
         - linux: py312-test
-        - linux: py310-test-dev
         - linux: py311-test-dev
         - linux: py312-test-dev
+        - linux: py313-test-dev
 
         - macos: py311-test
         - macos: py312-test-dev
 
-        - windows: py38-test
-        - windows: py311-test-dev
+        - windows: py312-test-dev
 
   publish:
     needs: tests
