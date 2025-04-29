@@ -15,7 +15,7 @@ from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
-from specutils import Spectrum
+from specutils import Spectrum, Spectrum1D
 
 UNCERT_REF = {'std': StdDevUncertainty,
               'var': VarianceUncertainty,
@@ -41,7 +41,7 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     # NOTE: This class could be updated to use CompoundLowLevelWCS from NDCube.
 
-    def __init__(self, wcs, ndim, spectral_axis_index):
+    def __init__(self, wcs, ndim, spectral_axis_index=None):
         self.spectral_wcs = wcs
         self.flux_ndim = ndim
         self.spectral_axis_index = spectral_axis_index
@@ -162,7 +162,12 @@ class SpecutilsHandler:
         # specutils 2.0 doesn't care where the spectral axis anymore, but we still need
         # PaddedSpectrumWCS for now
         if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
-            data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim, obj.spectral_axis_index))
+            if hasattr(obj, 'spectral_axis_index'):
+                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim,
+                                                     obj.spectral_axis_index))
+            else:
+                # specutils 1.x
+                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
         else:
             data = Data(coords=obj.wcs)
 
@@ -180,7 +185,8 @@ class SpecutilsHandler:
             data['mask'] = obj.mask
 
         # Log which is the spectral axis
-        data.meta.update({'spectral_axis_index': obj.spectral_axis_index})
+        if hasattr(obj, 'spectral_axis_index'):
+            data.meta.update({'spectral_axis_index': obj.spectral_axis_index})
 
         data.meta.update(obj.meta)
 
@@ -223,8 +229,20 @@ class SpecutilsHandler:
 
         elif statistic is not None:
 
-            spectral_axis_index = data.meta['spectral_axis_index']
-            axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
+            if 'spectral_axis_index' in data.meta:
+                spectral_axis_index = data.meta['spectral_axis_index']
+                axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
+            else:
+                # In 1.x, need to determine the spectral axis from the coords
+                if isinstance(data.coords, PaddedSpectrumWCS):
+                    spectral_axis_index = 0
+                    axes = tuple(range(0, data.ndim-1))
+                elif isinstance(data.coords, WCS):
+                    # Find spectral axis
+                    spectral_axis_index = data.coords.naxis - 1 - data.coords.wcs.spec
+                    # Find non-spectral axes
+                    axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
+
             if isinstance(data.coords, PaddedSpectrumWCS):
                 kwargs = {'wcs': data.coords.spectral_wcs}
             elif isinstance(data.coords, WCS):
@@ -341,3 +359,9 @@ class SpecutilsHandler:
             [attribute] if not hasattr(attribute, '__len__') else attribute)
 
         return Spectrum(**data_kwargs, **kwargs)
+
+
+@data_translator(Spectrum1D)
+class Specutils1xHandler(SpecutilsHandler):
+    # Nothing extra to add here, just needed a separate data_translator
+    pass
