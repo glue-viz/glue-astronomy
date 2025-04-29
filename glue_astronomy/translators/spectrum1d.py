@@ -223,6 +223,9 @@ class SpecutilsHandler:
         if data.ndim < 2 and statistic is not None:
             statistic = None
 
+        if 'spectral_axis_index' in data.meta:
+            spectral_axis_index = data.meta['spectral_axis_index']
+
         if statistic is None and isinstance(data.coords, BaseHighLevelWCS):
 
             if isinstance(data.coords, PaddedSpectrumWCS):
@@ -233,7 +236,6 @@ class SpecutilsHandler:
         elif statistic is not None:
 
             if 'spectral_axis_index' in data.meta:
-                spectral_axis_index = data.meta['spectral_axis_index']
                 axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
             else:
                 # In 1.x, need to determine the spectral axis from the coords

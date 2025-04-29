@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
+import specutils
 from specutils import Spectrum
 
 from astropy import units as u
@@ -10,11 +11,14 @@ from astropy.tests.helper import assert_quantity_allclose
 from astropy.nddata import VarianceUncertainty
 from astropy.coordinates import SpectralCoord
 from astropy.utils.exceptions import AstropyUserWarning
+from astropy.utils import minversion
 
 from glue.core import Data, DataCollection
 from glue.core.component import Component
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
+
+SPECUTILS_LT_2 = not minversion(specutils, "2.0.dev")
 
 
 def test_to_spectrum1d():
@@ -181,7 +185,10 @@ def test_from_spectrum1d(mode):
     assert isinstance(spec_new, Spectrum)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     if mode == 'wcs3d':
-        assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+        if SPECUTILS_LT_2:
+            assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+        else:
+            assert_quantity_allclose(spec_new.flux, np.ones((4, 4, 5))*u.Unit('Jy'))
     else:
         assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
     assert spec_new.uncertainty is None
@@ -191,10 +198,15 @@ def test_from_spectrum1d(mode):
     assert isinstance(spec_new, Spectrum)
     assert_quantity_allclose(spec_new.spectral_axis, [1, 2, 3, 4] * u.Hz)
     if mode == 'wcs3d':
-        assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+        if SPECUTILS_LT_2:
+            assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
+            assert_quantity_allclose(spec_new.uncertainty.quantity,
+                                     np.ones((5, 4, 4))*0.01*u.Jy**2)
+        else:
+            assert_quantity_allclose(spec_new.flux, np.ones((4, 4, 5))*u.Unit('Jy'))
+            assert_quantity_allclose(spec_new.uncertainty.quantity,
+                                     np.ones((4, 4, 5))*0.01*u.Jy**2)
         assert spec_new.uncertainty is not None
-        assert_quantity_allclose(spec_new.uncertainty.quantity,
-                                 np.ones((5, 4, 4))*0.01*u.Jy**2)
     else:
         assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
         assert spec_new.uncertainty is not None
@@ -221,7 +233,7 @@ def test_spectrum1d_2d_data(spec_ndim):
     elif spec_ndim == 3:
         flux = np.ones((3, 3, 2)) * u.Unit('Jy')
 
-    spec = Spectrum(flux, wcs=wcs, meta={'instrument': 'spamcam'})
+    spec = Spectrum(flux, wcs=wcs, meta={'instrument': 'spamcam'}, spectral_axis_index=-1)
 
     assert spec.data.ndim == spec_ndim
     assert spec.wcs.naxis == 1
