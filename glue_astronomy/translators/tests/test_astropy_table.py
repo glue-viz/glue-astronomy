@@ -12,11 +12,11 @@ def test_table(table_class):
 
     data_collection = DataCollection()
 
-    ra = [9.417, 9.422]
-    dec = [-33.702, -33.714]
-    flux = [1,1]
+    ra = [9.417, 9.422] * u.deg
+    dec = [-33.702, -33.714] * u.deg
+    flux = [1, 1] * u.Jy
     label = ['test1', 'test2']
-    columns=['label', 'ra', 'dec', 'flux']
+    columns = ['label', 'ra', 'dec', 'flux']
     table = table_class(data=[label, ra, dec, flux], names=columns)
 
     data_collection['test table'] = table
