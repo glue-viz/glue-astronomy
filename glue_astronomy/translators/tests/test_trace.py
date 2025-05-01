@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from specreduce import tracing
 
@@ -13,6 +14,7 @@ except ImportError:
 from glue.core import Data, DataCollection
 
 
+@pytest.mark.filterwarnings('ignore:The Spectrum1D class is deprecated')
 def test_trace():
 
     image = make_2d_trace_image(**trace_args)
