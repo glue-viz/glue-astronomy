@@ -1,5 +1,30 @@
 # Full changelog
 
+## v0.11.0 - 2025-05-13
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### Bug Fixes
+
+* Loosen check on coordinate class for NDData translator to accept subclasses by @bmorris3 in https://github.com/glue-viz/glue-astronomy/pull/101
+
+#### Documentation
+
+* Document and check WCS usage for `to_sky` option in subset-to-region translator; add tests by @cshanahan1 in https://github.com/glue-viz/glue-astronomy/pull/97
+
+#### Other Changes
+
+* Don't set PLAT in GitHub Actions config by @astrofrog in https://github.com/glue-viz/glue-astronomy/pull/70
+* Fix compatibility with future glue-core changes by @astrofrog in https://github.com/glue-viz/glue-astronomy/pull/95
+* Update CI matrix and fix issues by @astrofrog in https://github.com/glue-viz/glue-astronomy/pull/104
+
+### New Contributors
+
+* @cshanahan1 made their first contribution in https://github.com/glue-viz/glue-astronomy/pull/97
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.10.0...v0.11.0
+
 ## v0.10.0 - 2023-06-16
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
