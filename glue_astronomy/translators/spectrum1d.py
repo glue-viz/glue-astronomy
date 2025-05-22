@@ -41,10 +41,9 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
     # NOTE: This class could be updated to use CompoundLowLevelWCS from NDCube.
 
-    def __init__(self, wcs, ndim, spectral_axis_index=None):
+    def __init__(self, wcs, ndim):
         self.spectral_wcs = wcs
         self.flux_ndim = ndim
-        self.spectral_axis_index = spectral_axis_index
 
         if self.flux_ndim == 2:
             self.spatial_keys = ['spatial']
@@ -163,8 +162,7 @@ class SpecutilsHandler:
         # PaddedSpectrumWCS for now
         if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
             if hasattr(obj, 'spectral_axis_index'):
-                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim,
-                                                     obj.spectral_axis_index))
+                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
             else:
                 # specutils 1.x
                 data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
@@ -196,7 +194,7 @@ class SpecutilsHandler:
         return data
 
     def to_object(self, data_or_subset, attribute=None, statistic='mean',
-                  spectral_axis_index=None):
+                  spectral_axis_index=None, move_spectral_axis=None):
         """
         Convert a glue Data object to a Spectrum object.
 
@@ -296,6 +294,9 @@ class SpecutilsHandler:
         # Add this if needed
         if spectral_axis_index is not None and statistic is None:
             kwargs['spectral_axis_index'] = spectral_axis_index
+
+        if move_spectral_axis is not None:
+            kwargs['move_spectral_axis'] = move_spectral_axis
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
