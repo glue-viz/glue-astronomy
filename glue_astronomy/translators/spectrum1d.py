@@ -161,11 +161,7 @@ class SpecutilsHandler:
         # specutils 2.0 doesn't care where the spectral axis anymore, but we still need
         # PaddedSpectrumWCS for now
         if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
-            if hasattr(obj, 'spectral_axis_index'):
-                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
-            else:
-                # specutils 1.x
-                data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
+            data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
         # Need to convert to SpectralCoordinates for specutils 1.x
         elif obj.flux.ndim == 1 and isinstance(obj.wcs, GWCS) and not hasattr(obj, 'spectral_axis_index'):  # noqa
             data = Data(coords=SpectralCoordinates(obj.spectral_axis))

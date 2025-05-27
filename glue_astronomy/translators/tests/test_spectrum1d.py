@@ -180,6 +180,10 @@ def test_from_spectrum1d(mode):
     component = data.get_component('uncertainty')
     assert component.units == 'Jy2'
 
+    if not SPECUTILS_LT_2:
+            assert 'spectral_axis_index' in data.meta
+            assert data.meta['spectral_axis_index'] == spec.spectral_axis_index
+
     # Check round-tripping via single attribute reference
     spec_new = data.get_object(attribute='flux', statistic=None)
     assert isinstance(spec_new, Spectrum)
@@ -189,6 +193,7 @@ def test_from_spectrum1d(mode):
             assert_quantity_allclose(spec_new.flux, np.ones((5, 4, 4))*u.Unit('Jy'))
         else:
             assert_quantity_allclose(spec_new.flux, np.ones((4, 4, 5))*u.Unit('Jy'))
+            assert spec_new.spectral_axis_index == 0
     else:
         assert_quantity_allclose(spec_new.flux, [2, 3, 4, 5] * u.Jy)
     assert spec_new.uncertainty is None
@@ -233,7 +238,12 @@ def test_spectrum1d_2d_data(spec_ndim):
     elif spec_ndim == 3:
         flux = np.ones((3, 3, 2)) * u.Unit('Jy')
 
-    spec = Spectrum(flux, wcs=wcs, meta={'instrument': 'spamcam'}, spectral_axis_index=-1)
+    if SPECUTILS_LT_2:
+        kwargs = {}
+    else:
+        kwargs = {'spectral_axis_index': -1}
+
+    spec = Spectrum(flux, wcs=wcs, meta={'instrument': 'spamcam'}, **kwargs)
 
     assert spec.data.ndim == spec_ndim
     assert spec.wcs.naxis == 1
