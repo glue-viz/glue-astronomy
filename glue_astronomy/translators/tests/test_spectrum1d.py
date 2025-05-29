@@ -217,6 +217,11 @@ def test_from_spectrum1d(mode):
         assert spec_new.uncertainty is not None
         assert_quantity_allclose(spec_new.uncertainty.quantity, [0.1, 0.1, 0.1, 0.1] * u.Jy**2)
 
+    # Check collapsing with mask
+    if mode == 'wcs3d':
+        spec_new = data.get_object(statistic='mean')
+        assert_quantity_allclose(spec_new.flux, np.ones((4,))*u.Jy)
+
 
 @pytest.mark.parametrize('spec_ndim', (2, 3))
 def test_spectrum1d_2d_data(spec_ndim):
