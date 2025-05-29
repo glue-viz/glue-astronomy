@@ -271,10 +271,6 @@ class SpecutilsHandler:
                     warnings.warn('Spectral solution is not the same at all spatial points,'
                                   ' collapsing may give inaccurate results.')
                     kwargs = {'wcs': data.coords}
-            else:
-                # Shouldn't get here anymore, but just in case.
-                raise ValueError('Can only use statistic= if the Data object has a GWCS'
-                                 ' or FITS WCS')
 
         elif isinstance(data.coords, SpectralCoordinates):
 

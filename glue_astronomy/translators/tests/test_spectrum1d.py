@@ -181,8 +181,8 @@ def test_from_spectrum1d(mode):
     assert component.units == 'Jy2'
 
     if not SPECUTILS_LT_2:
-            assert 'spectral_axis_index' in data.meta
-            assert data.meta['spectral_axis_index'] == spec.spectral_axis_index
+        assert 'spectral_axis_index' in data.meta
+        assert data.meta['spectral_axis_index'] == spec.spectral_axis_index
 
     # Check round-tripping via single attribute reference
     spec_new = data.get_object(attribute='flux', statistic=None)
