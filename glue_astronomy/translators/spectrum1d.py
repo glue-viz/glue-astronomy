@@ -197,14 +197,23 @@ class SpecutilsHandler:
         Parameters
         ----------
         data_or_subset : `glue.core.data.Data` or `glue.core.subset.Subset`
-            The data to convert to a Spectrum object
-        attribute : `glue.core.component_id.ComponentID`
-            The attribute to use for the Spectrum data
+            The data to convert to a Spectrum object.
+        attribute : `glue.core.component_id.ComponentID`, str
+            The attribute to use for the output Spectrum's flux. If not specified,
+            attempts to identify an attribute named "flux" or uses the only available
+            attribute for Data with only one attribute.
         statistic : {'minimum', 'maximum', 'mean', 'median', 'sum', 'percentile'}
-            The statistic to use to collapse the dataset
+            The statistic to use to collapse the dataset. Defaults to "mean". Set to
+            None to avoid collapsing multidimensional data (e.g., a cube) to a
+            one-dimensional Spectrum.
         spectral_axis_index : integer
             Used to specify which axis of a multi-dimensional spectrum is the
-            spectral axis if it is ambiguous
+            spectral axis if it is ambiguous.
+        move_spectral_axis: integer, str
+            Used to reshape the output data so that the spectral axis is at the specified
+            index, for example move_spectral_axis='last' or move_spectral_axis=2 would
+            replicate the specutils 1.x behavior of forcing the spectral axis to be the
+            last axis in a cube.
         """
 
         if isinstance(data_or_subset, Subset):
@@ -217,7 +226,7 @@ class SpecutilsHandler:
         if data.ndim < 2 and statistic is not None:
             statistic = None
 
-        if 'spectral_axis_index' in data.meta:
+        if 'spectral_axis_index' in data.meta and spectral_axis_index is None:
             spectral_axis_index = data.meta['spectral_axis_index']
 
         if statistic is None and isinstance(data.coords, BaseHighLevelWCS):
