@@ -154,7 +154,7 @@ class SpecutilsHandler:
             # In this case we had spectral axis in pixels
             spec_coord = test_world[data_ndim - 1 - spectral_axis_index]
 
-        return np.isclose(spec_coord[0], spec_coord[1]) and np.isclose(spec_coord[2], spec_coord[3])  # noqa
+        return np.isclose(spec_coord[0], spec_coord[1], rtol=1e-9) and np.isclose(spec_coord[2], spec_coord[3], 1e-9)  # noqa
 
     def to_data(self, obj):
 
