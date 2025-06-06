@@ -1,20 +1,21 @@
 import numpy as np
+import warnings
 
 from glue.config import data_translator
 from glue.core import Data, Subset
 
 from gwcs import WCS as GWCS
 
-from astropy.wcs import WCS
 from astropy import units as u
-from astropy.wcs import WCSSUB_SPECTRAL
+from astropy.coordinates import SpectralCoord
+from astropy.wcs import WCS, WCSSUB_SPECTRAL
 from astropy.nddata import StdDevUncertainty, InverseVariance, VarianceUncertainty
 from astropy.wcs.wcsapi.wrappers.base import BaseWCSWrapper
 from astropy.wcs.wcsapi import HighLevelWCSMixin, BaseHighLevelWCS
 
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
-from specutils import Spectrum1D
+from specutils import Spectrum, Spectrum1D
 
 UNCERT_REF = {'std': StdDevUncertainty,
               'var': VarianceUncertainty,
@@ -34,7 +35,7 @@ UCD_TO_SPECTRAL_NAME = {'em.freq': 'Frequency',
 
 class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
 
-    # Spectrum1D can use a 1D spectral WCS even for n-dimensional
+    # Spectrum can use a 1D spectral WCS even for n-dimensional
     # datasets while glue always needs the dimensionality to match,
     # so this class pads the WCS so that it is n-dimensional.
 
@@ -126,17 +127,43 @@ class PaddedSpectrumWCS(BaseWCSWrapper, HighLevelWCSMixin):
         return False
 
 
-@data_translator(Spectrum1D)
-class Specutils1DHandler:
+@data_translator(Spectrum)
+class SpecutilsHandler:
+
+    def _has_homogenous_spectral_solution(self, data):
+        # Check to see if a GWCS gives the same spectral solution at every spatial point
+        spectral_axis_index = data.meta['spectral_axis_index']
+        data_ndim = data.ndim
+
+        axes = tuple(i for i in range(data_ndim) if i != spectral_axis_index)
+
+        corners = list(np.zeros((data_ndim, 4)))
+        for i in axes:
+            corners[i][1] = data.shape[i]-1
+            corners[i][3] = data.shape[i]-1
+        corners[spectral_axis_index][2] = data.shape[spectral_axis_index]-1
+        corners[spectral_axis_index][3] = data.shape[spectral_axis_index]-1
+        # WCS order vs array order
+        corners.reverse()
+
+        test_world = data.coords.pixel_to_world(*corners)
+        spec_coord = [x for x in test_world if isinstance(x, SpectralCoord)]
+        if len(spec_coord):
+            spec_coord = spec_coord[0]
+        else:
+            # In this case we had spectral axis in pixels
+            spec_coord = test_world[data_ndim - 1 - spectral_axis_index]
+
+        return np.isclose(spec_coord[0], spec_coord[1], rtol=1e-9) and np.isclose(spec_coord[2], spec_coord[3], 1e-9)  # noqa
 
     def to_data(self, obj):
 
-        # Glue expects spectral axis first for cubes (opposite of specutils).
-        # Swap the spectral axis to first here. to_object doesn't need this because
-        # Spectrum1D does it automatically on initialization.
+        # specutils 2.0 doesn't care where the spectral axis anymore, but we still need
+        # PaddedSpectrumWCS for now
         if obj.flux.ndim > 1 and obj.wcs.world_n_dim == 1:
             data = Data(coords=PaddedSpectrumWCS(obj.wcs, obj.flux.ndim))
-        elif obj.flux.ndim == 1 and obj.wcs.world_n_dim == 1 and isinstance(obj.wcs, GWCS):
+        # Need to convert to SpectralCoordinates for specutils 1.x
+        elif obj.flux.ndim == 1 and isinstance(obj.wcs, GWCS) and not hasattr(obj, 'spectral_axis_index'):  # noqa
             data = Data(coords=SpectralCoordinates(obj.spectral_axis))
         else:
             data = Data(coords=obj.wcs)
@@ -154,22 +181,39 @@ class Specutils1DHandler:
         if obj.mask is not None:
             data['mask'] = obj.mask
 
+        # Log which is the spectral axis
+        if hasattr(obj, 'spectral_axis_index'):
+            data.meta.update({'spectral_axis_index': obj.spectral_axis_index})
+
         data.meta.update(obj.meta)
 
         return data
 
-    def to_object(self, data_or_subset, attribute=None, statistic='mean'):
+    def to_object(self, data_or_subset, attribute=None, statistic='mean',
+                  spectral_axis_index=None, move_spectral_axis=None):
         """
-        Convert a glue Data object to a Spectrum1D object.
+        Convert a glue Data object to a Spectrum object.
 
         Parameters
         ----------
         data_or_subset : `glue.core.data.Data` or `glue.core.subset.Subset`
-            The data to convert to a Spectrum1D object
-        attribute : `glue.core.component_id.ComponentID`
-            The attribute to use for the Spectrum1D data
+            The data to convert to a Spectrum object.
+        attribute : `glue.core.component_id.ComponentID`, str
+            The attribute to use for the output Spectrum's flux. If not specified,
+            attempts to identify an attribute named "flux" or uses the only available
+            attribute for Data with only one attribute.
         statistic : {'minimum', 'maximum', 'mean', 'median', 'sum', 'percentile'}
-            The statistic to use to collapse the dataset
+            The statistic to use to collapse the dataset. Defaults to "mean". Set to
+            None to avoid collapsing multidimensional data (e.g., a cube) to a
+            one-dimensional Spectrum.
+        spectral_axis_index : integer
+            Used to specify which axis of a multi-dimensional spectrum is the
+            spectral axis if it is ambiguous.
+        move_spectral_axis: integer, str
+            Used to reshape the output data so that the spectral axis is at the specified
+            index, for example move_spectral_axis='last' or move_spectral_axis=2 would
+            replicate the specutils 1.x behavior of forcing the spectral axis to be the
+            last axis in a cube.
         """
 
         if isinstance(data_or_subset, Subset):
@@ -182,6 +226,9 @@ class Specutils1DHandler:
         if data.ndim < 2 and statistic is not None:
             statistic = None
 
+        if 'spectral_axis_index' in data.meta and spectral_axis_index is None:
+            spectral_axis_index = data.meta['spectral_axis_index']
+
         if statistic is None and isinstance(data.coords, BaseHighLevelWCS):
 
             if isinstance(data.coords, PaddedSpectrumWCS):
@@ -191,22 +238,48 @@ class Specutils1DHandler:
 
         elif statistic is not None:
 
+            if 'spectral_axis_index' in data.meta:
+                axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
+            else:
+                # In 1.x, need to determine the spectral axis from the coords
+                if isinstance(data.coords, PaddedSpectrumWCS):
+                    spectral_axis_index = 0
+                    axes = tuple(range(0, data.ndim-1))
+                elif isinstance(data.coords, WCS):
+                    # Find spectral axis
+                    spectral_axis_index = data.coords.naxis - 1 - data.coords.wcs.spec
+                    # Find non-spectral axes
+                    axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
+
             if isinstance(data.coords, PaddedSpectrumWCS):
-                spec_axis = 0
-                axes = tuple(range(0, data.ndim-1))
                 kwargs = {'wcs': data.coords.spectral_wcs}
             elif isinstance(data.coords, WCS):
-
-                # Find spectral axis
-                spec_axis = data.coords.naxis - 1 - data.coords.wcs.spec
-
-                # Find non-spectral axes
-                axes = tuple(i for i in range(data.ndim) if i != spec_axis)
-
                 kwargs = {'wcs': data.coords.sub([WCSSUB_SPECTRAL])}
+            elif isinstance(data.coords, GWCS):
+                # Check if we need to resample to a common spectral axis for all spatial
+                # points before collapsing or if all spaxels have same solution
+                if self._has_homogenous_spectral_solution(data):
+                    wcs_args = []
+                    for i in range(len(data.shape)):
+                        wcs_args.append(np.zeros(data.shape[spectral_axis_index]))
+                    wcs_args[spectral_axis_index] = np.arange(data.shape[spectral_axis_index])
+                    wcs_args.reverse()
+                    spectral_and_spatial = data.coords.pixel_to_world(*wcs_args)
+                    spectral_axis = [x for x in spectral_and_spatial if isinstance(x, SpectralCoord)]  # noqa
+                    if len(spectral_axis):
+                        spectral_axis = spectral_axis[0]  # noqa
+                    else:
+                        spectral_axis = spectral_and_spatial[data.ndim - 1 - spectral_axis_index]
+                        if spectral_axis.unit == "":
+                            spectral_axis = spectral_axis * u.pixel
+                    kwargs = {'spectral_axis': spectral_axis}
 
-            else:
-                raise ValueError('Can only use statistic= if the Data object has a FITS WCS')
+                else:
+                    # In this case the flux should be resampled onto a common spectral axis
+                    # before collapsing
+                    warnings.warn('Spectral solution is not the same at all spatial points,'
+                                  ' collapsing may give inaccurate results.')
+                    kwargs = {'wcs': data.coords}
 
         elif isinstance(data.coords, SpectralCoordinates):
 
@@ -218,6 +291,13 @@ class Specutils1DHandler:
 
         # Copy over metadata
         kwargs['meta'] = data.meta.copy()
+
+        # Add this if needed
+        if spectral_axis_index is not None and statistic is None:
+            kwargs['spectral_axis_index'] = spectral_axis_index
+
+        if move_spectral_axis is not None:
+            kwargs['move_spectral_axis'] = move_spectral_axis
 
         if isinstance(attribute, str):
             attribute = data.id[attribute]
@@ -257,7 +337,8 @@ class Specutils1DHandler:
                     values = data.compute_statistic(statistic, attribute, axis=axes,
                                                     subset_state=subset_state)
                     if mask is not None:
-                        collapse_axes = tuple([x for x in range(0, data.ndim-1)])
+                        collapse_axes = tuple([x for x in range(0, data.ndim) if
+                                               x != data.meta['spectral_axis_index']])
                         mask = np.all(mask, collapse_axes)
                 else:
                     values = data.get_data(attribute)
@@ -284,4 +365,10 @@ class Specutils1DHandler:
         data_kwargs = parse_attributes(
             [attribute] if not hasattr(attribute, '__len__') else attribute)
 
-        return Spectrum1D(**data_kwargs, **kwargs)
+        return Spectrum(**data_kwargs, **kwargs)
+
+
+@data_translator(Spectrum1D)
+class Specutils1xHandler(SpecutilsHandler):
+    # Nothing extra to add here, just needed a separate data_translator
+    pass
