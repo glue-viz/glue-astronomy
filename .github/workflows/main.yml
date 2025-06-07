@@ -32,21 +32,11 @@ jobs:
           - enchant
 
       envs: |
-        # Standard tests
-        - linux: py310-test
-        - linux: py311-test
-        - linux: py312-test
-        - linux: py313-test-dev
-
-        - macos: py310-test
-        - macos: py311-test
-        - macos: py312-test
+        # explore macos test matrix to track down regions build failures
+        - macos: py313-test
+        - macos: py311-test-dev
+        - macos: py312-test-dev
         - macos: py313-test-dev
-
-        - windows: py310-test
-        - windows: py311-test
-        - windows: py312-test
-        - windows: py313-test-dev
 
   publish:
     needs: tests
