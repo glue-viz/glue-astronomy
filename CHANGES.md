@@ -1,5 +1,17 @@
 # Full changelog
 
+## v0.12.0 - 2025-06-24
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### New Features
+
+* Add translators for astropy Table and QTable by @rosteen in https://github.com/glue-viz/glue-astronomy/pull/103
+* Handle GWCS for specutils 2.0 compatibility by @rosteen in https://github.com/glue-viz/glue-astronomy/pull/100
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.11.0...v0.12.0
+
 ## v0.11.0 - 2025-05-13
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
