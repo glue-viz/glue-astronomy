@@ -3,3 +3,64 @@ requires = ["setuptools>=30.3.0",
             "setuptools_scm",
             "wheel"]
 build-backend = 'setuptools.build_meta'
+
+[tool.ruff]
+# ruff check: pycodestyle, Pyflakes, McCabe, flake8-bugbear, flake8-simplify
+lint.select = ["ALL"]
+lint.ignore = [  # NOTE: non-permanent exclusions should be added to `.ruff.toml` instead.
+
+    # flake8-builtins (A) : shadowing a Python built-in.
+    # New ones should be avoided and is up to maintainers to enforce.
+
+    # flake8-commas (COM)
+    "COM812",  # TrailingCommaMissing
+
+    # pydocstyle (D)
+    # Missing Docstrings
+    "D102",  # Missing docstring in public method. Don't check b/c docstring inheritance.
+    # Docstring Content Issues
+    "D400",  # EndsInPeriod.  NOTE: might want to revisit this.
+    "D410",  # BlankLineAfterSection. Using D412 instead.
+    "D411",  # BlankLineBeforeSection.
+    "D414",  # EmptyDocstringSection.
+
+    # flake8-fixme (FIX)
+    "FIX002",  # Line contains TODO | notes for improvements are OK if the code works
+
+    # Pylint (PLC, PLE, PLR, PLW)
+    "PLC0415",  # `import` should be at the top-level of a file
+
+    # flake8-self (SLF)
+    "SLF001", # private member access
+
+    # flake8-todos (TD)
+    "TD002",  # Missing author in TODO
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"setup.py" = ["INP001"]  # Part of configuration, not a package.
+".github/workflows/*.py" = ["INP001"]
+"test_*.py" = [
+    "D",  # pydocstyle
+]
+"docs/conf*.py" = [
+    "A001",  # Variable `copyright` is shadowing a Python builtin.
+    "INP001",  # implicit-namespace-package. The examples are not a package.
+    "COM819",  # Trailing comma prohibited.
+]
+
+[tool.ruff.lint.flake8-annotations]
+ignore-fully-untyped = true
+mypy-init-return = true
+
+[tool.ruff.lint.flake8-comprehensions]
+allow-dict-calls-with-keyword-arguments = true
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["glue", "glue_astronomy"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

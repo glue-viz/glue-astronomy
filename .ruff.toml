@@ -1,0 +1,119 @@
+extend = "pyproject.toml"
+lint.ignore = [
+    # NOTE: to find a good code to fix, run:
+    # ruff check --select="ALL" --statistics glue_qt/<subpackage>
+
+    # flake8-unused-arguments (ARG)
+    "ARG001",  # unused-function-argument
+    "ARG002",  # unused-method-argument
+
+    # flake8-comprehensions (C4)
+    "C408",  # Unnecessary `dict()` call (rewrite as a literal)
+    "C409",  # Unnecessary list literal passed to `tuple()` (rewrite as a set comprehension)
+    "C419",  # Unnecessary list comprehension
+
+    # pydocstyle (D)
+    # Missing Docstrings
+    "D100",  # undocumented-public-module
+    "D101",  # undocumented-public-class
+    "D103",  # undocumented-public-function
+    "D104",  # undocumented-public-package
+    "D202",  # blank-line-after-function
+    "D205",  # blank-line-after-summary
+
+    # pycodestyle (E, W)
+    "E501",  # line-too-long
+
+    # flake8-errmsg (EM)  : nicer error tracebacks
+    "EM101",   # raw-string-in-exception
+    "EM102",   # f-string-in-exception
+
+    # eradicate (ERA)
+    # NOTE: be careful that developer notes are kept.
+    "ERA001",  # commented-out-code
+
+    # isort (I)
+    "I001",  # unsorted imports
+
+    # NumPy-specific rules (NPY)
+    "NPY002", # Replace legacy `np.random.rand` call with `np.random.Generator`  (2023-05-03)
+
+    # pygrep-hooks (PGH)
+    "PGH004",  # Use specific rule codes when using `noqa`
+
+    # flake8-pie (PIE)
+    "PIE808",  # Unnecessary `start` argument in `range`
+
+    # Pylint (PLC, PLE, PLR, PLW)
+    "PLR0911",  # too-many-return-statements (12 > 6)
+    "PLR0912",  # too-many-branches
+    "PLR0915",  # too-many-statements
+    "PLR2004",  # MagicValueComparison
+
+    # flake8-pytest-style (PT)
+    "PT006",   # pytest-parametrize-names-wrong-type
+    "PT007",   # pytest-parametrize-values-wrong-type
+    "PT011",   # pytest-raises-too-broad
+    "PT012",   # pytest-raises-with-multiple-statements
+    "PT018",   # pytest-composite-assertion
+
+    # flake8-use-pathlib (PTH)
+    "PTH110",  # os-path-exists
+    "PTH112",  # os-path-isdir
+    "PTH118",  # os-path-join
+    "PTH120",  # os-path-dirname
+
+    # flake8-quotes (Q)
+    "Q000",    # Single quotes found but double quotes preferred
+
+    # flake8-return (RET)
+    "RET504",  # unnecessary-assign
+    "RET505",  # unnecessary-else-after-return
+
+    # flake8-raise (RSE)
+    "RSE102",  # unnecessary-paren-on-raise-exception
+
+    # Ruff-specific rules (RUF)
+    "RUF022",  # `__all__` is not sorted
+    "RUF100",  # Unused blanket `noqa` directive
+
+    # flake8-bandit (S)
+    "S101",  # Use of `assert` detected
+
+    # flake8-simplify (SIM)
+    "SIM108",  # UseTernaryOperator
+
+    # flake8-print (T20)
+    "T201",  # PrintUsed
+
+    # flake8-todos (TD)
+    "TD003",  # Missing issue link on the line following this TODO
+
+    # tryceratops (TRY)
+    "TRY003",  # raise-vanilla-args
+]
+lint.unfixable = []
+
+[lint.extend-per-file-ignores]
+"__init__.py" = ["E402", "F401", "F403", "PT013"]
+".github/workflows/check_failures.py" = ["ICN001", "S314"]
+"test_*.py" = ["B015", "RUF015"]  # Pointless comparison; prefer next({iterable}) over slice
+
+# pyupgrade (UP) - UP009: UTF-8 encoding declaration is unnecessary (1); UP025: Remove unicode literals from strings (8)
+"docs/conf.py" = ["UP009", "UP025"]
+
+# flake8-blind-except (BLE001)
+# Pylint collapsible-else-if (PLR5501)
+"glue_astronomy/io/spectral_cube/spectral_cube.py" = ["BLE001", "PLR5501"]
+
+# flake8-bugbear (B904): RaiseWithoutFromInsideExcept
+# mccabe (C90): code complexity
+# TODO: configure maximum mccabe allowed complexity (default 10; 2 exceptions @20, 32).
+# flake8-boolean-trap (FBT): Boolean default positional argument in function definition
+#     NOTE: a good thing to fix, but changes API.
+# tryceratops (TRY004): prefer-type-error
+"glue_astronomy/translators/regions.py" = ["B904", "C901", "FBT002", "TRY004"]
+
+# mccabe (C90) : code complexity
+# Perflint (PERF401): Use a list comprehension to create a transformed list
+"glue_astronomy/translators/spectrum1d.py" = ["C901", "PERF401"]
