@@ -8,7 +8,7 @@ __all__ = ['SpectralCoordinates']
 
 class SpectralCoordinates(Coordinates):
     """
-    This is a sub-class of Coordinates that is intended for 1-d spectral axes
+    Subclass of Coordinates that is intended for 1-d spectral axes
     given by a :class:`~astropy.units.Quantity` array.
     """
 
