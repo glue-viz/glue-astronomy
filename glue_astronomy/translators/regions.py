@@ -19,7 +19,7 @@ GLUE_LT_1_11 = Version(glue_version) < Version('1.11')
 
 def range_to_rect(data, ori, low, high):
     """
-    Converts a 1D range on a 2D glue Data set into an astropy regions RectangularPixelRegion.
+    Convert a 1D range on a 2D glue Data set into an astropy regions RectangularPixelRegion.
 
     The region covers the entirety of the data along the axis not specified by the `ori` parameter.
 

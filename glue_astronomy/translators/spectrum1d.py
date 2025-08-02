@@ -148,7 +148,7 @@ class SpecutilsHandler:
 
         test_world = data.coords.pixel_to_world(*corners)
         spec_coord = [x for x in test_world if isinstance(x, SpectralCoord)]
-        if len(spec_coord):
+        if len(spec_coord) > 0:
             spec_coord = spec_coord[0]
         else:
             # In this case we had spectral axis in pixels
@@ -240,16 +240,15 @@ class SpecutilsHandler:
 
             if 'spectral_axis_index' in data.meta:
                 axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
-            else:
-                # In 1.x, need to determine the spectral axis from the coords
-                if isinstance(data.coords, PaddedSpectrumWCS):
-                    spectral_axis_index = 0
-                    axes = tuple(range(0, data.ndim-1))
-                elif isinstance(data.coords, WCS):
-                    # Find spectral axis
-                    spectral_axis_index = data.coords.naxis - 1 - data.coords.wcs.spec
-                    # Find non-spectral axes
-                    axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
+            # In 1.x, need to determine the spectral axis from the coords
+            elif isinstance(data.coords, PaddedSpectrumWCS):
+                spectral_axis_index = 0
+                axes = tuple(range(0, data.ndim-1))
+            elif isinstance(data.coords, WCS):
+                # Find spectral axis
+                spectral_axis_index = data.coords.naxis - 1 - data.coords.wcs.spec
+                # Find non-spectral axes
+                axes = tuple(i for i in range(data.ndim) if i != spectral_axis_index)
 
             if isinstance(data.coords, PaddedSpectrumWCS):
                 kwargs = {'wcs': data.coords.spectral_wcs}
@@ -260,13 +259,13 @@ class SpecutilsHandler:
                 # points before collapsing or if all spaxels have same solution
                 if self._has_homogenous_spectral_solution(data):
                     wcs_args = []
-                    for i in range(len(data.shape)):
+                    for _ in range(len(data.shape)):
                         wcs_args.append(np.zeros(data.shape[spectral_axis_index]))
                     wcs_args[spectral_axis_index] = np.arange(data.shape[spectral_axis_index])
                     wcs_args.reverse()
                     spectral_and_spatial = data.coords.pixel_to_world(*wcs_args)
                     spectral_axis = [x for x in spectral_and_spatial if isinstance(x, SpectralCoord)]  # noqa
-                    if len(spectral_axis):
+                    if len(spectral_axis) > 0:
                         spectral_axis = spectral_axis[0]  # noqa
                     else:
                         spectral_axis = spectral_and_spatial[data.ndim - 1 - spectral_axis_index]
@@ -278,7 +277,7 @@ class SpecutilsHandler:
                     # In this case the flux should be resampled onto a common spectral axis
                     # before collapsing
                     warnings.warn('Spectral solution is not the same at all spatial points,'
-                                  ' collapsing may give inaccurate results.')
+                                  ' collapsing may give inaccurate results.', stacklevel=2)
                     kwargs = {'wcs': data.coords}
 
         elif isinstance(data.coords, SpectralCoordinates):

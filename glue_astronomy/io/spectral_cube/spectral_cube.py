@@ -27,9 +27,7 @@ def identify_file_format(filename):
 
 
 def is_spectral_cube(filename, **kwargs):
-    """
-    Check that the file is a 3D or 4D FITS spectral cube
-    """
+    """Check that the file is a 3D or 4D FITS spectral cube"""
 
     file_format = identify_file_format(filename)
 
@@ -54,7 +52,7 @@ def spectral_cube_to_data(cube, label=None):
 
     for component in cube.components:
         data = getattr(cube, component)._data
-        result.add_component(data, label='STOKES {0}'.format(component))
+        result.add_component(data, label=f'STOKES {component}')
 
     result._preferred_translation = SpectralCube
 

@@ -34,7 +34,7 @@ class SpectralCubeHandler:
             The attribute to use for the SpectralCube data
         """
 
-        if data_or_subset.ndim > 0 and data_or_subset.ndim != 3 and data_or_subset.ndim != 4:
+        if data_or_subset.ndim > 0 and data_or_subset.ndim not in {3, 4}:
             raise ValueError('Data object should have 3 or 4 dimensions in order to '
                              'be converted to a SpectralCube object.')
 
