@@ -22,7 +22,6 @@ lint.ignore = [
     "D205",  # blank-line-after-summary
 
     # pycodestyle (E, W)
-    "E501",  # line-too-long
 
     # flake8-errmsg (EM)  : nicer error tracebacks
     "EM101",   # raw-string-in-exception
