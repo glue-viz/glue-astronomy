@@ -347,7 +347,7 @@ class SpecutilsHandler:
                 if attribute_label not in ('flux', 'uncertainty'):
                     attribute_label = 'flux'
 
-                values = u.Quantity(values, unit=component.units)
+                values = u.Quantity(values, unit=component.units, copy=False)
 
                 # If the attribute is uncertainty, we must coerce it to a
                 #  specific uncertainty type. If no value exists in the glue
