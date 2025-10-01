@@ -1,11 +1,9 @@
 import numpy as np
 
 
-from reproject.hips.dask_array import hips_as_dask, HiPSArray
+from reproject.hips import hips_as_dask_array
 
 
-from glue.core import DataCollection
-from glue_qt.app.application import GlueApplication
 from glue.core.component_id import ComponentID
 from glue.core.data import BaseCartesianData
 from glue.utils import compute_statistic
@@ -14,12 +12,15 @@ from glue.core.fixed_resolution_buffer import compute_fixed_resolution_buffer
 
 class HiPSData(BaseCartesianData):
 
-    def __init__(self, directory_or_url, label):
-        self._array = HiPSArray(directory_or_url)
+    def __init__(self, directory_or_url, *, label):
+        self._array, self._wcs = hips_as_dask_array(directory_or_url)
         self._dask_arrays = []
-        for level in range(self._array._order + 1):
-            self._dask_arrays.append(hips_as_dask(directory_or_url, level=level))
-        self.data_cid = ComponentID(label="data", parent=self)
+        # Determine order from array shape
+        self._order = int(np.log2(self._array.shape[0] / 5 / self._array.chunksize[0]))
+        for level in range(self._order):
+            self._dask_arrays.append(hips_as_dask_array(directory_or_url, level=level)[0])
+        self._dask_arrays.append(self._array)
+        self.data_cid = ComponentID(label="values", parent=self)
         self._label = label
         super(HiPSData, self).__init__()
 
@@ -29,7 +30,7 @@ class HiPSData(BaseCartesianData):
 
     @property
     def coords(self):
-        return self._array.wcs
+        return self._wcs
 
     @property
     def shape(self):
@@ -46,45 +47,45 @@ class HiPSData(BaseCartesianData):
         if cid is self.data_cid:
             if view is None:
                 raise NotImplementedError("View must be specified for HiPS data")
-            else:
-                if isinstance(view, tuple):
-                    if len(view) == 2:
-                        i, j = view
-                        i = i.ravel()
-                        j = j.ravel()
-                        # Only keep non-zero pixels for now
-                        keep = (i > 0) & (j > 0)
-                        i = i[keep]
-                        j = j[keep]
-                        # Determine minimal separation between pixels. Pick any
-                        # pixel and use it as a reference pixel, then find the
-                        # minimum separation from any other pixel to that one.
-                        iref, jref = i[0], j[0]
-                        sep = np.hypot(i[1:] - iref, j[1:] - jref)
-                        min_sep = np.min(sep[sep > 0])
-                        # Now that we have min_sep, we can determine which level
-                        # to use. If the minimum separation is larger than e.g.
-                        # 2 we can use order - 1, and so on.
-                        level = max(0, self._array._order - int(np.log2(min_sep)))
-                        factor = 2 ** int(self._array._order - level)
-                        inew, jnew = view
-                        inew = inew // factor
-                        jnew = jnew // factor
-                        try:
-                            return self._dask_arrays[level].vindex[inew, jnew].compute()
-                        except Exception as e:
-                            print("Exception in dask compute:", e)
-                            import traceback
+            if isinstance(view, tuple):
+                if len(view) == 2:
+                    i, j = view
+                    i = i.ravel()
+                    j = j.ravel()
+                    # Only keep non-zero pixels for now
+                    keep = (i > 0) & (j > 0)
+                    i = i[keep]
+                    j = j[keep]
+                    # Determine minimal separation between pixels. Pick any
+                    # pixel and use it as a reference pixel, then find the
+                    # minimum separation from any other pixel to that one.
+                    iref, jref = i[0], j[0]
+                    sep = np.hypot(i[1:] - iref, j[1:] - jref)
+                    min_sep = np.min(sep[sep > 0])
+                    # Now that we have min_sep, we can determine which level
+                    # to use. If the minimum separation is larger than e.g.
+                    # 2 we can use order - 1, and so on.
+                    level = max(0, self._order - int(np.log2(min_sep)))
+                    factor = 2 ** int(self._order - level)
+                    inew, jnew = view
+                    inew = inew // factor
+                    jnew = jnew // factor
+                    try:
+                        return self._dask_arrays[level].vindex[inew, jnew].compute()
+                    except Exception as e:
+                        print("Exception in dask compute:", e)
+                        import traceback
 
-                            traceback.print_exc()
-                            raise
-                    else:
-                        raise ValueError("View must be a tuple of two arrays")
-                raise NotImplementedError("View must be specified for HiPS data")
-        else:
-            return super(HiPSData, self).get_data(cid, view=view)
+                        traceback.print_exc()
+                        raise
+                else:
+                    raise ValueError("View must be a tuple of two arrays")
+            raise NotImplementedError("View must be specified for HiPS data")
+        return super(HiPSData, self).get_data(cid, view=view)
 
     def get_mask(self, subset_state, view=None):
+        print('get_mask')
+        print(subset_state.to_mask(self, view=view).sum())
         return subset_state.to_mask(self, view=view)
 
     def compute_fixed_resolution_buffer(self, *args, **kwargs):
@@ -115,4 +116,5 @@ class HiPSData(BaseCartesianData):
         subset_state=None,
         subset_group=None,
     ):
+
         raise NotImplementedError("Histogram computation not implemented for HiPS data")
