@@ -67,14 +67,7 @@ class HiPSData(BaseCartesianData):
                     inew, jnew = view
                     inew = inew // factor
                     jnew = jnew // factor
-                    try:
-                        return self._dask_arrays[level].vindex[inew, jnew].compute()
-                    except Exception as e:
-                        print("Exception in dask compute:", e)
-                        import traceback
-
-                        traceback.print_exc()
-                        raise
+                    return self._dask_arrays[level].vindex[inew, jnew].compute()
                 else:
                     raise ValueError("View must be a tuple of two arrays")
             raise NotImplementedError("View must be specified for HiPS data")
