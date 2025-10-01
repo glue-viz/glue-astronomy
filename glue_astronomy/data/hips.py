@@ -1,9 +1,5 @@
 import numpy as np
 
-
-from reproject.hips import hips_as_dask_array
-
-
 from glue.core.component_id import ComponentID
 from glue.core.data import BaseCartesianData
 from glue.utils import compute_statistic
@@ -13,6 +9,7 @@ from glue.core.fixed_resolution_buffer import compute_fixed_resolution_buffer
 class HiPSData(BaseCartesianData):
 
     def __init__(self, directory_or_url, *, label):
+        from reproject.hips import hips_as_dask_array
         self._array, self._wcs = hips_as_dask_array(directory_or_url)
         self._dask_arrays = []
         # Determine order from array shape

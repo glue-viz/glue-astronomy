@@ -37,8 +37,8 @@ def example_hips_dataset(tmp_path_factory):
     return hips_directory
 
 
-@visual_test
 @pytest.mark.skipif("not REPROJECT_INSTALLED")
+@visual_test
 def test_hips_data_image(example_hips_dataset):
 
     hips_data = HiPSData(example_hips_dataset, label='HiPS Data')
