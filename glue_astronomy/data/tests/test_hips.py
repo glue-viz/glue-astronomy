@@ -12,9 +12,7 @@ try:
     from reproject import reproject_interp
     from reproject.hips import reproject_to_hips
 except ImportError:
-    REPROJECT_INSTALLED = False
-else:
-    REPROJECT_INSTALLED = True
+    pytest.skip(allow_module_level=True)
 
 
 @pytest.fixture(scope="session")
@@ -37,7 +35,6 @@ def example_hips_dataset(tmp_path_factory):
     return hips_directory
 
 
-@pytest.mark.skipif("not REPROJECT_INSTALLED")
 @visual_test
 def test_hips_data_image(example_hips_dataset):
 
