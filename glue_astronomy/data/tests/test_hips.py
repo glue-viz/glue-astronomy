@@ -2,13 +2,19 @@ import pytest
 
 import numpy as np
 from astropy.wcs import WCS
-from reproject import reproject_interp
-from reproject.hips import reproject_to_hips
 from glue_astronomy.data.hips import HiPSData
 from glue.tests.visual.helpers import visual_test
 from glue.viewers.image.viewer import SimpleImageViewer
 from glue.core.application_base import Application
 from echo import delay_callback
+
+try:
+    from reproject import reproject_interp
+    from reproject.hips import reproject_to_hips
+except ImportError:
+    REPROJECT_INSTALLED = False
+else:
+    REPROJECT_INSTALLED = True
 
 
 @pytest.fixture(scope="session")
@@ -32,6 +38,7 @@ def example_hips_dataset(tmp_path_factory):
 
 
 @visual_test
+@pytest.mark.skipif("not REPROJECT_INSTALLED")
 def test_hips_data_image(example_hips_dataset):
 
     hips_data = HiPSData(example_hips_dataset, label='HiPS Data')
