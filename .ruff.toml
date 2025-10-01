@@ -104,6 +104,7 @@ lint.unfixable = []
 # flake8-blind-except (BLE001)
 # Pylint collapsible-else-if (PLR5501)
 "glue_astronomy/io/spectral_cube/spectral_cube.py" = ["BLE001", "PLR5501"]
+"glue_astronomy/data/hips.py" = ["PLR0913", "FBT002", "A002"]
 
 # flake8-bugbear (B904): RaiseWithoutFromInsideExcept
 # mccabe (C90): code complexity

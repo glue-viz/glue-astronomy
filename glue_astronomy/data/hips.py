@@ -22,7 +22,7 @@ class HiPSData(BaseCartesianData):
         self._dask_arrays.append(self._array)
         self.data_cid = ComponentID(label="values", parent=self)
         self._label = label
-        super(HiPSData, self).__init__()
+        super().__init__()
 
     @property
     def label(self):
@@ -81,11 +81,9 @@ class HiPSData(BaseCartesianData):
                 else:
                     raise ValueError("View must be a tuple of two arrays")
             raise NotImplementedError("View must be specified for HiPS data")
-        return super(HiPSData, self).get_data(cid, view=view)
+        return super().get_data(cid, view=view)
 
     def get_mask(self, subset_state, view=None):
-        print('get_mask')
-        print(subset_state.to_mask(self, view=view).sum())
         return subset_state.to_mask(self, view=view)
 
     def compute_fixed_resolution_buffer(self, *args, **kwargs):

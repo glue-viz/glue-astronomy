@@ -4,7 +4,7 @@ import numpy as np
 from astropy.wcs import WCS
 from reproject import reproject_interp
 from reproject.hips import reproject_to_hips
-from ..hips import HiPSData
+from glue_astronomy.data.hips import HiPSData
 from glue.tests.visual.helpers import visual_test
 from glue.viewers.image.viewer import SimpleImageViewer
 from glue.core.application_base import Application
@@ -24,7 +24,9 @@ def example_hips_dataset(tmp_path_factory):
 
     hips_directory = tmp_path_factory.mktemp('hips') / 'hips'
 
-    reproject_to_hips((array, wcs), output_directory=hips_directory, coord_system_out='equatorial', reproject_function=reproject_interp, level=3)
+    reproject_to_hips((array, wcs), output_directory=hips_directory,
+                       coord_system_out='equatorial',
+                       reproject_function=reproject_interp, level=3)
 
     return hips_directory
 
@@ -46,7 +48,9 @@ def test_hips_data_image(example_hips_dataset):
         viewer.state.y_min = 7000
         viewer.state.y_max = 7800
 
-    app.data_collection.new_subset_group(label='subset1', subset_state=hips_data.main_components[0] > 10000)
-    app.data_collection.new_subset_group(label='subset2', subset_state=hips_data.pixel_component_ids[1] > 11400)
+    app.data_collection.new_subset_group(label='subset1',
+                                         subset_state=hips_data.main_components[0] > 10000)
+    app.data_collection.new_subset_group(label='subset2',
+                                         subset_state=hips_data.pixel_component_ids[1] > 11400)
 
     return viewer.figure
