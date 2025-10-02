@@ -65,3 +65,8 @@ known-first-party = ["glue", "glue_astronomy"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.gilesbot.circleci_artifacts.figure_report]
+url = "results/fig_comparison.html"
+message = "Click details to see the image test comparisons, for py311-test-visual"
+report_on_fail = true
