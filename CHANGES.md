@@ -1,5 +1,26 @@
 # Full changelog
 
+## v0.13.0 - 2025-10-02
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+### What's Changed
+
+#### New Features
+
+* Added 2-d HiPS data class by @astrofrog in https://github.com/glue-viz/glue-astronomy/pull/113
+
+#### Other Changes
+
+* Add pre-commit and test configuration for ruff codestyle checks by @dhomeier in https://github.com/glue-viz/glue-astronomy/pull/107
+* [pre-commit.ci] pre-commit autoupdate by @pre-commit-ci[bot] in https://github.com/glue-viz/glue-astronomy/pull/110
+* Make HiPS dependencies optional by @astrofrog in https://github.com/glue-viz/glue-astronomy/pull/114
+
+### New Contributors
+
+* @pre-commit-ci[bot] made their first contribution in https://github.com/glue-viz/glue-astronomy/pull/110
+
+**Full Changelog**: https://github.com/glue-viz/glue-astronomy/compare/v0.12.0...v0.13.0
+
 ## v0.12.0 - 2025-06-24
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -145,9 +166,9 @@
 
 - Updated `AstropyRegions` translator to export `roi.theta` angle
 - (supported as of `glue` 1.5.0). in https://github.com/glue-viz/glue-astronomy/pull/73
--
+- 
 - Added support to import and export `specreduce` `Trace` objects. in https://github.com/glue-viz/glue-astronomy/pull/72
--
+- 
 
 ## [0.4.0](https://github.com/glue-viz/glue-astronomy/compare/v0.3.3...v0.4.0) - 2022-04-07
 
@@ -165,9 +186,9 @@
 
 - Fixed translation to `regions.EllipsePixelRegion`. Previous translation
 - was passing in radii as full height/width of the ellipse. in https://github.com/glue-viz/glue-astronomy/pull/67
--
+- 
 - Fixed compatibility of CCDData translator with GWCS. in https://github.com/glue-viz/glue-astronomy/pull/58
--
+- 
 
 ## [0.3.2](https://github.com/glue-viz/glue-astronomy/compare/v0.3.1...v0.3.2) - 2021-09-14
 
