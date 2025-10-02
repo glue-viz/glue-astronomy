@@ -51,7 +51,7 @@ jobs:
             pip install pip tox --upgrade
       - run: ssh-add -D
       - add_ssh_keys:
-          fingerprints: "44:09:69:d7:c6:77:25:e9:46:da:f1:22:7d:d4:38:29"
+          fingerprints: "SHA256:yIMQ/D4h8u+yb2WgeBjDaHaIHzLIl506xGJAljqgmKI"
       - run: ssh-keyscan github.com >> ~/.ssh/known_hosts
       - run: git config --global user.email "glue@circleci" && git config --global user.name "Glue Circle CI"
       - run: git clone git@github.com:glue-viz/glue-astronomy-visual-tests.git --depth 1 ~/glue-astronomy-visual-tests/
