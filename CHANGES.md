@@ -166,9 +166,9 @@
 
 - Updated `AstropyRegions` translator to export `roi.theta` angle
 - (supported as of `glue` 1.5.0). in https://github.com/glue-viz/glue-astronomy/pull/73
-- 
+-
 - Added support to import and export `specreduce` `Trace` objects. in https://github.com/glue-viz/glue-astronomy/pull/72
-- 
+-
 
 ## [0.4.0](https://github.com/glue-viz/glue-astronomy/compare/v0.3.3...v0.4.0) - 2022-04-07
 
@@ -186,9 +186,9 @@
 
 - Fixed translation to `regions.EllipsePixelRegion`. Previous translation
 - was passing in radii as full height/width of the ellipse. in https://github.com/glue-viz/glue-astronomy/pull/67
-- 
+-
 - Fixed compatibility of CCDData translator with GWCS. in https://github.com/glue-viz/glue-astronomy/pull/58
-- 
+-
 
 ## [0.3.2](https://github.com/glue-viz/glue-astronomy/compare/v0.3.1...v0.3.2) - 2021-09-14
 
