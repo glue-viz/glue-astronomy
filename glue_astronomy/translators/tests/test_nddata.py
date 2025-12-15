@@ -206,7 +206,7 @@ def test_meta_round_trip():
     image_names = ['image_ccd', 'image_ndd']
     data_collection = DataCollection()
 
-    for cls, image_name in zip(classes, image_names):
+    for cls, image_name in zip(classes, image_names, strict=True):
         data_collection[image_name] = cls(flux, **kwargs)
 
         data = data_collection[image_name]
