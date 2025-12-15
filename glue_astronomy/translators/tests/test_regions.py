@@ -528,6 +528,6 @@ class TestAstropyRegions:
 
         # and that proper error is raised when there is no WCS
         with pytest.raises(ValueError, match="No WCS associated with subset data, "
-                                             "can't do to_sky transformation."):
+                                             "can't do to_sky transformation"):
             subset_state = self.setup_rois(subset_state_name, *args, without_wcs=True)
             roi_subset_state_to_region(subset_state, to_sky=True)
