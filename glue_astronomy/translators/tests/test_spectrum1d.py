@@ -1,10 +1,13 @@
 import pytest
+from contextlib import nullcontext
+
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
 import specutils
 from specutils import Spectrum
 
+import astropy
 from astropy import units as u
 from astropy.wcs import WCS
 from astropy.tests.helper import assert_quantity_allclose
@@ -19,6 +22,12 @@ from glue.core.component import Component
 from glue_astronomy.spectral_coordinates import SpectralCoordinates
 
 SPECUTILS_LT_2 = not minversion(specutils, "2.0.dev")
+
+
+if minversion(astropy, "8.0.0b1"):
+    astropy_wcs_warning = nullcontext()
+else:
+    astropy_wcs_warning = pytest.warns(AstropyUserWarning, match='No observer defined on WCS')
 
 
 def test_to_spectrum1d():
@@ -284,7 +293,7 @@ def test_spectrum1d_2d_data(spec_ndim):
         assert isinstance(s, SpectralCoord)
 
         # Check round-tripping of coordinates
-        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+        with astropy_wcs_warning:
             px, py = data.coords.world_to_pixel(s, o)
         assert_allclose(px, 1)
         assert_allclose(py, 2)
@@ -312,7 +321,7 @@ def test_spectrum1d_2d_data(spec_ndim):
         assert isinstance(s, SpectralCoord)
 
         # Check round-tripping of coordinates
-        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+        with astropy_wcs_warning:
             px, py, pz = data.coords.world_to_pixel(s, o1, o2)
         assert_allclose(px, 1)
         assert_allclose(py, 2)
