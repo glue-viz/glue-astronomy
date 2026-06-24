@@ -2,7 +2,7 @@ import numpy as np
 
 from glue.core.component_id import ComponentID
 from glue.core.data import BaseCartesianData
-from glue.utils import compute_statistic, unbroadcast
+from glue.utils import compute_statistic, iterate_chunks
 from glue.core.fixed_resolution_buffer import compute_fixed_resolution_buffer
 
 
@@ -81,24 +81,129 @@ class HiPSData(BaseCartesianData):
     def compute_fixed_resolution_buffer(self, *args, **kwargs):
         return compute_fixed_resolution_buffer(self, *args, **kwargs)
 
-    def _bounding_box(self, subset_state):
+    def _bounding_box(self, subset_state, max_load):
         """
         Return the minimal full-resolution bounding box (a list of ``(lo, hi)``
         index pairs) that contains the given subset, or `None` if the subset is
         empty.
+
+        Evaluating the mask over the full-resolution array would use a
+        prohibitive amount of memory for a large HiPS, so instead we locate the
+        subset by evaluating the mask on a coarse grid and zooming in. If the
+        subset is smaller than the coarse grid spacing it can be missed by that
+        search, so we then try to seed the search from the subset centre (some
+        subset states, e.g. ROI selections, expose one), and finally fall back
+        to a memory-bounded chunked scan of the full-resolution array.
         """
-        mask = subset_state.to_mask(self)
-        unbroadcast_mask = unbroadcast(mask)
-        if not np.any(unbroadcast_mask):
-            return None
-        box = []
-        for idim in range(self.ndim):
-            collapse_axes = tuple(i for i in range(self.ndim) if i != idim)
-            valid = unbroadcast_mask.any(axis=collapse_axes)
-            valid = np.broadcast_to(valid, mask.shape[idim:idim + 1])
-            indices = np.where(valid)[0]
-            box.append((int(indices[0]), int(indices[-1]) + 1))
+        search = min(max_load, 4_000_000)
+
+        box = self._search_bounding_box(subset_state, search)
+        if box is not None:
+            return box
+
+        center = self._subset_center(subset_state)
+        if center:
+            total = int(np.prod(self.shape))
+            stride = max(1, int(np.ceil((total / search) ** (1.0 / self.ndim))))
+            region = []
+            for axis in range(self.ndim):
+                if axis in center:
+                    lo = max(0, int(np.floor(center[axis])) - stride)
+                    hi = min(self.shape[axis], int(np.ceil(center[axis])) + stride + 1)
+                    region.append((lo, hi))
+                else:
+                    region.append((0, self.shape[axis]))
+            box = self._search_bounding_box(subset_state, search, region=region)
+            if box is not None:
+                return box
+
+        return self._chunked_bounding_box(subset_state, max_load)
+
+    def _search_bounding_box(self, subset_state, max_points, region=None):
+        """
+        Locate the subset by evaluating its mask on a grid with at most
+        ``max_points`` points over ``region`` (the whole array by default) and
+        zooming in until the grid is at full resolution. Returns the
+        full-resolution bounding box, or `None` if nothing is selected on the
+        grid (the subset may be empty, or smaller than the grid spacing).
+        """
+        if region is None:
+            region = [(0, self.shape[axis]) for axis in range(self.ndim)]
+
+        box = None
+        for _ in range(64):
+            sizes = [hi - lo for lo, hi in region]
+            total = int(np.prod(sizes))
+            if total <= max_points:
+                stride = 1
+            else:
+                stride = int(np.ceil((total / max_points) ** (1.0 / self.ndim)))
+            coords = [np.arange(lo, hi, stride) for lo, hi in region]
+            grids = np.meshgrid(*coords, indexing='ij')
+            mask = np.asarray(subset_state.to_mask(self, view=tuple(grids)))
+            if not mask.any():
+                return None
+            new_box = []
+            for axis in range(self.ndim):
+                collapse = tuple(a for a in range(self.ndim) if a != axis)
+                selected = np.where(mask.any(axis=collapse))[0]
+                # Widen by the sampling stride to cover gaps between samples.
+                lo = max(region[axis][0], int(coords[axis][selected[0]]) - (stride - 1))
+                hi = min(region[axis][1], int(coords[axis][selected[-1]]) + stride)
+                new_box.append((lo, hi))
+            if stride == 1 or new_box == box:
+                return new_box
+            box = new_box
+            region = new_box
         return box
+
+    def _subset_center(self, subset_state):
+        """
+        Return a dict mapping pixel axis index to the subset centre coordinate
+        along that axis, for subset states that expose a centre (e.g. ROI
+        selections), or `None`.
+        """
+        center = getattr(subset_state, 'center', None)
+        if not callable(center):
+            return None
+        try:
+            values = center()
+            atts = subset_state.attributes
+        except (AttributeError, TypeError, ValueError, NotImplementedError):
+            return None
+        if values is None or atts is None:
+            return None
+        pixel_axes = {cid: cid.axis for cid in self.pixel_component_ids}
+        result = {}
+        for att, value in zip(atts, np.atleast_1d(values), strict=False):
+            if att in pixel_axes and value is not None and np.isfinite(value):
+                result[pixel_axes[att]] = float(value)
+        return result or None
+
+    def _chunked_bounding_box(self, subset_state, max_points):
+        """
+        Find the subset bounding box by scanning the full-resolution array in
+        chunks of at most ``max_points`` elements, so that the mask is never
+        materialised for the whole array at once. Returns `None` if the subset
+        is empty.
+        """
+        lo = list(self.shape)
+        hi = [0] * self.ndim
+        found = False
+        for view in iterate_chunks(self.shape, n_max=max_points):
+            mask = np.asarray(subset_state.to_mask(self, view=view))
+            if not mask.any():
+                continue
+            found = True
+            for axis in range(self.ndim):
+                collapse = tuple(a for a in range(self.ndim) if a != axis)
+                selected = np.where(mask.any(axis=collapse))[0]
+                start = view[axis].start
+                lo[axis] = min(lo[axis], start + int(selected[0]))
+                hi[axis] = max(hi[axis], start + int(selected[-1]) + 1)
+        if not found:
+            return None
+        return [(lo[axis], hi[axis]) for axis in range(self.ndim)]
 
     def _select_level(self, box, max_load):
         """
@@ -190,7 +295,7 @@ class HiPSData(BaseCartesianData):
         # Determine the region of interest and how much data it represents at
         # full resolution, then pick a level whose load is reasonable.
         if subset_state is not None:
-            box = self._bounding_box(subset_state)
+            box = self._bounding_box(subset_state, max_load)
             if box is None:
                 if collapse is None:
                     return np.nan
@@ -268,7 +373,7 @@ class HiPSData(BaseCartesianData):
             data = source.compute()
             mask = None
         else:
-            box = self._bounding_box(subset_state)
+            box = self._bounding_box(subset_state, max_load)
             if box is None:
                 return np.zeros(bins[0], dtype=float)
             level, level_box = self._select_level(box, max_load)

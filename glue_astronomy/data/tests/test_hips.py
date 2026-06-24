@@ -8,6 +8,8 @@ from glue.viewers.image.viewer import SimpleImageViewer
 from glue.viewers.profile.viewer import SimpleProfileViewer
 from glue.viewers.histogram.viewer import SimpleHistogramViewer
 from glue.core.application_base import Application
+from glue.core.roi import RectangularROI
+from glue.core.subset import RoiSubsetState
 from echo import delay_callback
 
 try:
@@ -187,6 +189,83 @@ def test_hips3d_profile_subset(example_hips3d_dataset):
     assert np.isfinite(profile).any()
 
 
+def test_hips3d_profile_roi_subset(example_hips3d_dataset):
+
+    # Regression test: a small ROI selection (as produced by the selection
+    # tool) must not cause the full-resolution mask to be evaluated, which
+    # would use a prohibitive amount of memory for a large HiPS. We check that
+    # the bounding box is located cheaply (it is tiny, not the whole array) and
+    # that the resulting profile is correct.
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+
+    app = Application()
+    app.data_collection.append(hips_data)
+
+    image = app.new_data_viewer(SimpleImageViewer)
+    image.add_data(hips_data)
+
+    yc, xc = _find_data_pixel(hips_data)
+    px = hips_data.pixel_component_ids
+    roi = RectangularROI(xmin=xc - 0.5, xmax=xc + 0.5, ymin=yc - 0.5, ymax=yc + 0.5)
+    subset_state = RoiSubsetState(xatt=px[2], yatt=px[1], roi=roi)
+    app.data_collection.new_subset_group(label='roi', subset_state=subset_state)
+
+    # The bounding box should be tiny (a single spatial pixel), proving the
+    # subset was located without scanning the full-resolution array.
+    box = hips_data._bounding_box(subset_state, 40000000)
+    assert box[1] == (yc, yc + 1)
+    assert box[2] == (xc, xc + 1)
+
+    viewer = app.new_data_viewer(SimpleProfileViewer)
+    viewer.add_data(hips_data)
+    viewer.figure.canvas.draw()
+
+    for layer in viewer.layers:
+        x, y = layer.state.profile
+        assert len(x) == len(y)
+
+    subset = app.data_collection.subset_groups[0].subsets[0]
+    profile = hips_data.compute_statistic('mean', hips_data.main_components[0],
+                                          axis=(1, 2),
+                                          subset_state=subset.subset_state)
+    assert len(profile) == hips_data.shape[0]
+    assert np.isfinite(profile).any()
+
+
+def test_hips3d_bounding_box_methods(example_hips3d_dataset):
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+    yc, xc = _find_data_pixel(hips_data)
+    px = hips_data.pixel_component_ids
+
+    # A large ROI is found by the coarse grid search and refined.
+    big = RoiSubsetState(xatt=px[2], yatt=px[1],
+                         roi=RectangularROI(xmin=xc - 200, xmax=xc + 200,
+                                            ymin=yc - 200, ymax=yc + 200))
+    box = hips_data._bounding_box(big, 40000000)
+    assert box[1][0] <= yc - 200 + 1 and box[1][1] >= yc + 200
+    assert box[2][0] <= xc - 200 + 1 and box[2][1] >= xc + 200
+
+    # A single-pixel ROI is too small for the coarse search but is located via
+    # the subset centre.
+    small = RoiSubsetState(xatt=px[2], yatt=px[1],
+                           roi=RectangularROI(xmin=xc - 0.5, xmax=xc + 0.5,
+                                              ymin=yc - 0.5, ymax=yc + 0.5))
+    assert hips_data._bounding_box(small, 40000000)[1] == (yc, yc + 1)
+
+    # A subset with no centre still works via the chunked fallback.
+    inequality = (px[1] > yc - 0.5) & (px[1] < yc + 0.5) & \
+                 (px[2] > xc - 0.5) & (px[2] < xc + 0.5)
+    box = hips_data._bounding_box(inequality, 40000000)
+    assert box[1] == (yc, yc + 1) and box[2] == (xc, xc + 1)
+
+    # An empty subset returns None.
+    empty = RoiSubsetState(xatt=px[2], yatt=px[1],
+                           roi=RectangularROI(xmin=-10, xmax=-5, ymin=-10, ymax=-5))
+    assert hips_data._bounding_box(empty, 40000000) is None
+
+
 def test_hips3d_compute_statistic_shapes(example_hips3d_dataset):
 
     hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
@@ -211,11 +290,13 @@ def test_hips3d_compute_statistic_shapes(example_hips3d_dataset):
     # A small subset stays at full resolution, a subset spanning the whole cube
     # falls back to a coarser level so the load stays bounded.
     order = len(hips_data._dask_arrays) - 1
-    small_level, _ = hips_data._select_level(hips_data._bounding_box(pixel), 40000000)
+    small_level, _ = hips_data._select_level(
+        hips_data._bounding_box(pixel, 40000000), 40000000)
     assert small_level == order
 
     everything = px[1] >= 0
-    big_level, _ = hips_data._select_level(hips_data._bounding_box(everything), 40000000)
+    big_level, _ = hips_data._select_level(
+        hips_data._bounding_box(everything, 40000000), 40000000)
     assert big_level < order
 
 
