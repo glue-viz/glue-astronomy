@@ -5,6 +5,8 @@ from astropy.wcs import WCS
 from glue_astronomy.data.hips import HiPSData
 from glue.tests.visual.helpers import visual_test
 from glue.viewers.image.viewer import SimpleImageViewer
+from glue.viewers.profile.viewer import SimpleProfileViewer
+from glue.viewers.histogram.viewer import SimpleHistogramViewer
 from glue.core.application_base import Application
 from echo import delay_callback
 
@@ -111,3 +113,168 @@ def test_hips3d_data_image(example_hips3d_dataset):
                                          subset_state=hips_data.pixel_component_ids[2] > 1500)
 
     return viewer.figure
+
+
+def _find_data_pixel(hips_data):
+    # Locate a full-resolution spatial pixel that contains data, by scanning a
+    # tile-aligned block over the region known to contain the dataset footprint.
+    block = np.asarray(hips_data._array[0:hips_data.shape[0], 768:1280, 1280:1792])
+    finite = np.isfinite(block).any(axis=0)
+    ys, xs = np.where(finite)
+    assert len(ys) > 0
+    middle = len(ys) // 2
+    return 768 + int(ys[middle]), 1280 + int(xs[middle])
+
+
+def test_hips3d_profile(example_hips3d_dataset):
+
+    # Regression test for a shape mismatch that occurred when showing a HiPS3D
+    # dataset in the profile viewer with the profile running along a spatial
+    # (and therefore downsampled) axis: the profile x axis is at full
+    # resolution but compute_statistic used to return a coarse-resolution
+    # profile, so the two could not be broadcast together when drawing.
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+
+    app = Application()
+    app.data_collection.append(hips_data)
+
+    viewer = app.new_data_viewer(SimpleProfileViewer)
+    viewer.add_data(hips_data)
+
+    # Run the profile along a spatial axis - this is what used to crash.
+    viewer.state.x_att = hips_data.pixel_component_ids[1]
+
+    viewer.figure.canvas.draw()
+
+    x, y = viewer.layers[0].state.profile
+    assert len(x) == len(y) == hips_data.shape[1]
+
+
+def test_hips3d_profile_subset(example_hips3d_dataset):
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+
+    app = Application()
+    app.data_collection.append(hips_data)
+
+    image = app.new_data_viewer(SimpleImageViewer)
+    image.add_data(hips_data)
+
+    yc, xc = _find_data_pixel(hips_data)
+
+    px = hips_data.pixel_component_ids
+    subset_state = ((px[1] > yc - 0.5) & (px[1] < yc + 0.5) &
+                    (px[2] > xc - 0.5) & (px[2] < xc + 0.5))
+    app.data_collection.new_subset_group(label='pixel', subset_state=subset_state)
+
+    viewer = app.new_data_viewer(SimpleProfileViewer)
+    viewer.add_data(hips_data)
+
+    viewer.figure.canvas.draw()
+
+    for layer in viewer.layers:
+        x, y = layer.state.profile
+        assert len(x) == len(y)
+
+    # The single-pixel spectral profile of the subset should be at full
+    # resolution and contain real (finite) values.
+    subset = app.data_collection.subset_groups[0].subsets[0]
+    profile = hips_data.compute_statistic('mean', hips_data.main_components[0],
+                                          axis=(1, 2),
+                                          subset_state=subset.subset_state)
+    assert len(profile) == hips_data.shape[0]
+    assert np.isfinite(profile).any()
+
+
+def test_hips3d_compute_statistic_shapes(example_hips3d_dataset):
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+
+    yc, xc = _find_data_pixel(hips_data)
+    px = hips_data.pixel_component_ids
+    cid = hips_data.main_components[0]
+
+    pixel = ((px[1] > yc - 0.5) & (px[1] < yc + 0.5) &
+             (px[2] > xc - 0.5) & (px[2] < xc + 0.5))
+
+    # Collapsing along different axes must always return a profile that matches
+    # the full-resolution shape of the data along the remaining axis.
+    assert hips_data.compute_statistic('mean', cid, axis=(1, 2),
+                                       subset_state=pixel).shape == (hips_data.shape[0],)
+    assert hips_data.compute_statistic('mean', cid, axis=(0, 2),
+                                       subset_state=pixel).shape == (hips_data.shape[1],)
+
+    # A scalar statistic over a subset returns a single value.
+    assert np.ndim(hips_data.compute_statistic('mean', cid, subset_state=pixel)) == 0
+
+    # A small subset stays at full resolution, a subset spanning the whole cube
+    # falls back to a coarser level so the load stays bounded.
+    order = len(hips_data._dask_arrays) - 1
+    small_level, _ = hips_data._select_level(hips_data._bounding_box(pixel), 40000000)
+    assert small_level == order
+
+    everything = px[1] >= 0
+    big_level, _ = hips_data._select_level(hips_data._bounding_box(everything), 40000000)
+    assert big_level < order
+
+
+def test_hips3d_histogram(example_hips3d_dataset):
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+
+    app = Application()
+    app.data_collection.append(hips_data)
+
+    image = app.new_data_viewer(SimpleImageViewer)
+    image.add_data(hips_data)
+
+    yc, xc = _find_data_pixel(hips_data)
+    px = hips_data.pixel_component_ids
+    subset_state = ((px[1] > yc - 0.5) & (px[1] < yc + 0.5) &
+                    (px[2] > xc - 0.5) & (px[2] < xc + 0.5))
+    app.data_collection.new_subset_group(label='pixel', subset_state=subset_state)
+
+    viewer = app.new_data_viewer(SimpleHistogramViewer)
+    viewer.add_data(hips_data)
+
+    viewer.figure.canvas.draw()
+
+    n_bin = viewer.state.hist_n_bin
+    for layer in viewer.layers:
+        _edges, values = layer.state.histogram
+        assert len(values) == n_bin
+        assert np.all(np.isfinite(values))
+
+    # The data layer histogram should contain counts, and the subset histogram
+    # should be a strict subset of those counts.
+    data_total = np.nansum(viewer.layers[0].state.histogram[1])
+    subset_total = np.nansum(viewer.layers[1].state.histogram[1])
+    assert data_total > 0
+    assert 0 < subset_total <= data_total
+
+
+def test_hips3d_compute_histogram(example_hips3d_dataset):
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+    cid = hips_data.main_components[0]
+
+    vmin = hips_data.compute_statistic('minimum', cid)
+    vmax = hips_data.compute_statistic('maximum', cid)
+
+    # Histogram over the whole dataset.
+    hist = hips_data.compute_histogram([cid], range=[(vmin, vmax)], bins=[10],
+                                       log=[False])
+    assert hist.shape == (10,)
+    assert hist.sum() > 0
+
+    # Histogram over a single-pixel subset is computed at full resolution, so
+    # the (un-scaled) counts equal the number of finite values at that pixel.
+    yc, xc = _find_data_pixel(hips_data)
+    px = hips_data.pixel_component_ids
+    subset_state = ((px[1] > yc - 0.5) & (px[1] < yc + 0.5) &
+                    (px[2] > xc - 0.5) & (px[2] < xc + 0.5))
+    hist = hips_data.compute_histogram([cid], range=[(vmin, vmax)], bins=[10],
+                                       log=[False], subset_state=subset_state)
+    assert hist.sum() > 0
+    assert hist.sum() <= hips_data.shape[0]
