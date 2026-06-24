@@ -95,6 +95,25 @@ class HiPSData(BaseCartesianData):
         subset states, e.g. ROI selections, expose one), and finally fall back
         to a memory-bounded chunked scan of the full-resolution array.
         """
+        # Fast path: a slice-based subset (e.g. the single-pixel selection
+        # tool, which creates a PixelSubsetState) encodes the selected region
+        # directly as array slices, so we can read the bounding box off without
+        # evaluating any mask at all.
+        slices = self._slice_for_data(subset_state)
+        if slices is not None:
+            box = []
+            for axis, slc in enumerate(slices):
+                if slc.start is None:
+                    box.append((0, self.shape[axis]))
+                else:
+                    lo = max(0, int(slc.start))
+                    hi = int(slc.stop) if slc.stop is not None else lo + 1
+                    hi = min(self.shape[axis], hi)
+                    if hi <= lo:
+                        hi = min(self.shape[axis], lo + 1)
+                    box.append((lo, hi))
+            return box
+
         search = min(max_load, 4_000_000)
 
         box = self._search_bounding_box(subset_state, search)
@@ -244,6 +263,26 @@ class HiPSData(BaseCartesianData):
                 return level, level_box
         return 0, level_box
 
+    def _slice_for_data(self, subset_state):
+        """
+        If ``subset_state`` is a slice-based subset (e.g. a PixelSubsetState)
+        defined directly in this data's pixel space with contiguous slices,
+        return the list of slices, otherwise `None`. Such subsets are
+        axis-separable and can be handled without evaluating their (potentially
+        full-resolution) mask.
+        """
+        from glue.core.subset import SliceSubsetState
+        if not isinstance(subset_state, SliceSubsetState):
+            return None
+        if subset_state.reference_data is not self:
+            return None
+        slices = list(subset_state.slices)
+        if len(slices) != self.ndim:
+            return None
+        if any(slc.step not in (None, 1) for slc in slices):
+            return None
+        return slices
+
     def _level_mask(self, subset_state, level, level_box):
         """
         Evaluate the subset mask at the resolution of ``level``, aligned with
@@ -258,6 +297,26 @@ class HiPSData(BaseCartesianData):
             lo, hi = level_box[axis]
             full_index = np.floor((np.arange(lo, hi) + 0.5) * factor).astype(int)
             coords.append(np.clip(full_index, 0, self.shape[axis] - 1))
+
+        # Slice-based subsets are axis-separable, so evaluate them directly from
+        # the per-axis coordinates. This avoids SliceSubsetState.to_mask, which
+        # allocates a full-resolution array when given an array-style view.
+        slices = self._slice_for_data(subset_state)
+        if slices is not None:
+            mask = None
+            for axis, slc in enumerate(slices):
+                if slc.start is None:
+                    continue
+                stop = slc.stop if slc.stop is not None else slc.start + 1
+                inside = (coords[axis] >= slc.start) & (coords[axis] < stop)
+                shape = [1] * self.ndim
+                shape[axis] = -1
+                axis_mask = inside.reshape(shape)
+                mask = axis_mask if mask is None else (mask & axis_mask)
+            if mask is None:
+                return None
+            return np.broadcast_to(mask, tuple(len(c) for c in coords))
+
         grids = np.meshgrid(*coords, indexing='ij')
         return subset_state.to_mask(self, view=tuple(grids))
 

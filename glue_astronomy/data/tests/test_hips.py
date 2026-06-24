@@ -10,6 +10,7 @@ from glue.viewers.histogram.viewer import SimpleHistogramViewer
 from glue.core.application_base import Application
 from glue.core.roi import RectangularROI
 from glue.core.subset import RoiSubsetState
+from glue.viewers.image.pixel_selection_subset_state import PixelSubsetState
 from echo import delay_callback
 
 try:
@@ -229,6 +230,33 @@ def test_hips3d_profile_roi_subset(example_hips3d_dataset):
     profile = hips_data.compute_statistic('mean', hips_data.main_components[0],
                                           axis=(1, 2),
                                           subset_state=subset.subset_state)
+    assert len(profile) == hips_data.shape[0]
+    assert np.isfinite(profile).any()
+
+
+def test_hips3d_pixel_subset_state(example_hips3d_dataset):
+
+    # The single-pixel selection tool produces a PixelSubsetState (a slice-based
+    # subset). Its bounding box must be read directly off the slices, and its
+    # mask evaluated without ever allocating a full-resolution array (which
+    # SliceSubsetState.to_mask does for an array-style view).
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data')
+    yc, xc = _find_data_pixel(hips_data)
+
+    slices = [slice(None)] * hips_data.ndim
+    slices[1] = slice(yc, yc + 1)
+    slices[2] = slice(xc, xc + 1)
+    subset_state = PixelSubsetState(hips_data, slices)
+
+    # Bounding box comes straight from the slices.
+    box = hips_data._bounding_box(subset_state, 40000000)
+    assert box[0] == (0, hips_data.shape[0])
+    assert box[1] == (yc, yc + 1)
+    assert box[2] == (xc, xc + 1)
+
+    profile = hips_data.compute_statistic('mean', hips_data.main_components[0],
+                                          axis=(1, 2), subset_state=subset_state)
     assert len(profile) == hips_data.shape[0]
     assert np.isfinite(profile).any()
 
