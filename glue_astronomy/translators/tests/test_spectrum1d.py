@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
@@ -283,8 +285,12 @@ def test_spectrum1d_2d_data(spec_ndim):
         s, o = data.coords.pixel_to_world(1, 2)
         assert isinstance(s, SpectralCoord)
 
-        # Check round-tripping of coordinates
-        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+        # Check round-tripping of coordinates. Older astropy emits a warning
+        # about no observer being defined on the WCS, but newer versions do not,
+        # so we ignore it if present rather than requiring it.
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='No observer defined on WCS',
+                                    category=AstropyUserWarning)
             px, py = data.coords.world_to_pixel(s, o)
         assert_allclose(px, 1)
         assert_allclose(py, 2)
@@ -311,8 +317,12 @@ def test_spectrum1d_2d_data(spec_ndim):
         s, o1, o2 = data.coords.pixel_to_world(1, 2, 0)
         assert isinstance(s, SpectralCoord)
 
-        # Check round-tripping of coordinates
-        with pytest.warns(AstropyUserWarning, match='No observer defined on WCS'):
+        # Check round-tripping of coordinates. Older astropy emits a warning
+        # about no observer being defined on the WCS, but newer versions do not,
+        # so we ignore it if present rather than requiring it.
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='No observer defined on WCS',
+                                    category=AstropyUserWarning)
             px, py, pz = data.coords.world_to_pixel(s, o1, o2)
         assert_allclose(px, 1)
         assert_allclose(py, 2)
