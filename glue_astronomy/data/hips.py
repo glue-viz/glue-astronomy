@@ -12,11 +12,18 @@ class HiPSData(BaseCartesianData):
         from reproject.hips import hips_as_dask_array
         self._array, self._wcs = hips_as_dask_array(directory_or_url)
         self._dask_arrays = []
+        # The WCS of each level is kept because the spectral axis is not
+        # downsampled by a clean factor between levels, so mapping spectral
+        # pixels between levels has to go via the WCS rather than the shape.
+        self._level_wcs = []
         # Determine order from array shape
         self._order = int(np.log2(self._array.shape[-1] / 5 / self._array.chunksize[-1]))
         for level in range(self._order):
-            self._dask_arrays.append(hips_as_dask_array(directory_or_url, level=level)[0])
+            arr, wcs = hips_as_dask_array(directory_or_url, level=level)
+            self._dask_arrays.append(arr)
+            self._level_wcs.append(wcs)
         self._dask_arrays.append(self._array)
+        self._level_wcs.append(self._wcs)
         self.data_cid = ComponentID(label="values", parent=self)
         self._label = label
         self._nan = np.broadcast_to(np.nan, self._array.shape)
@@ -394,14 +401,34 @@ class HiPSData(BaseCartesianData):
         gather = []
         scatter = []
         for ax in remaining:
-            factor = self.shape[ax] / array.shape[ax]
-            lo, hi = level_box[ax]
             full_range = np.arange(box[ax][0], box[ax][1])
-            level_index = np.clip(np.floor(full_range / factor).astype(int), lo, hi - 1) - lo
             scatter.append(full_range)
-            gather.append(level_index)
+            gather.append(self._level_indices(ax, full_range, level, level_box))
         full_result[np.ix_(*scatter)] = result[np.ix_(*gather)]
         return full_result
+
+    def _level_indices(self, axis, full_indices, level, level_box):
+        """
+        Map full-resolution pixel indices along ``axis`` to indices into the
+        result computed at ``level`` over ``level_box``. The spatial axes
+        downsample by a clean factor, but the spectral axis does not, so spectral
+        pixels are mapped via the per-level WCS rather than the shape ratio.
+        """
+        lo, hi = level_box[axis]
+        array = self._dask_arrays[level]
+        spatial = (self.ndim - 2, self.ndim - 1)
+        if axis not in spatial:
+            try:
+                world = self._wcs.spectral.pixel_to_world_values(full_indices)
+                level_pixel = self._level_wcs[level].spectral.world_to_pixel_values(world)
+                index = np.round(level_pixel).astype(int)
+            except (AttributeError, ValueError, TypeError, IndexError):
+                factor = self.shape[axis] / array.shape[axis]
+                index = np.floor(full_indices / factor).astype(int)
+        else:
+            factor = self.shape[axis] / array.shape[axis]
+            index = np.floor(full_indices / factor).astype(int)
+        return np.clip(index, lo, hi - 1) - lo
 
     def compute_histogram(
         self,

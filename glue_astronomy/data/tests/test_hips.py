@@ -62,6 +62,32 @@ def example_hips3d_dataset(tmp_path_factory):
     return hips_directory
 
 
+@pytest.fixture(scope="session")
+def example_hips3d_deep_dataset(tmp_path_factory):
+
+    # A HiPS3D with several levels, so that the spectral axis is downsampled
+    # (by a non power-of-two factor) between levels - unlike the shallow
+    # fixture above where it stays the same size.
+
+    array = np.arange(64 * 120 * 120).reshape((64, 120, 120)).astype(float)
+
+    wcs = WCS(naxis=3)
+    wcs.wcs.ctype = 'RA---TAN', 'DEC--TAN', 'FREQ'
+    wcs.wcs.crval = 20, 40, 1e9
+    wcs.wcs.cdelt = -0.05, 0.05, 1e8
+    wcs.wcs.crpix = 60, 60, 1
+
+    hips_directory = tmp_path_factory.mktemp('hips') / 'hips3d_deep'
+
+    reproject_to_hips((array, wcs), output_directory=hips_directory,
+                       coord_system_out='equatorial',
+                       reproject_function=reproject_interp, level=2,
+                       tile_size=64,
+                       tile_depth=4)
+
+    return hips_directory
+
+
 @visual_test
 def test_hips_data_image(example_hips_dataset):
 
@@ -232,6 +258,43 @@ def test_hips3d_profile_roi_subset(example_hips3d_dataset):
                                           subset_state=subset.subset_state)
     assert len(profile) == hips_data.shape[0]
     assert np.isfinite(profile).any()
+
+
+def test_hips3d_profile_coarse_spectral_range(example_hips3d_deep_dataset):
+
+    # When a large subset forces the profile to be computed from a coarser
+    # level, the spectral axis is downsampled by a non power-of-two factor, so
+    # the coarse profile must be mapped back to full resolution via the spectral
+    # WCS. Otherwise it would be shifted and cover the wrong spectral range.
+
+    hips_data = HiPSData(example_hips3d_deep_dataset, label='HiPS3D Deep')
+
+    # The spectral axis really is downsampled between levels here.
+    assert hips_data._dask_arrays[0].shape[0] < hips_data.shape[0]
+
+    px = hips_data.pixel_component_ids
+    coarse = np.asarray(hips_data._dask_arrays[0])
+    cy, cx = np.where(np.isfinite(coarse).any(axis=0))
+    fy = hips_data.shape[1] / coarse.shape[1]
+    fx = hips_data.shape[2] / coarse.shape[2]
+    y0, y1 = int(cy.min() * fy), int(cy.max() * fy)
+    x0, x1 = int(cx.min() * fx), int(cx.max() * fx)
+    big = (px[1] >= y0) & (px[1] <= y1) & (px[2] >= x0) & (px[2] <= x1)
+
+    cid = hips_data.main_components[0]
+    full = hips_data.compute_statistic('mean', cid, axis=(1, 2),
+                                       subset_state=big, max_load=10 ** 12)
+    coarse_profile = hips_data.compute_statistic('mean', cid, axis=(1, 2),
+                                                 subset_state=big, max_load=200000)
+
+    full_finite = np.where(np.isfinite(full))[0]
+    coarse_finite = np.where(np.isfinite(coarse_profile))[0]
+
+    # Both profiles span the full-resolution spectral length and cover the same
+    # spectral range (to within a channel of the nearest-neighbour mapping).
+    assert len(full) == len(coarse_profile) == hips_data.shape[0]
+    assert abs(int(full_finite.min()) - int(coarse_finite.min())) <= 2
+    assert abs(int(full_finite.max()) - int(coarse_finite.max())) <= 2
 
 
 def test_hips3d_pixel_subset_state(example_hips3d_dataset):
