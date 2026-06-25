@@ -262,8 +262,13 @@ class HiPSData(BaseCartesianData):
         level so that we never load an unreasonable amount of data.
 
         The box is aligned to tile boundaries because a HiPS tile is the unit of
-        I/O - the underlying array can only be read a whole tile at a time.
+        I/O - the underlying array can only be read a whole tile at a time. A
+        subset that already spans a single spatial tile is therefore always read
+        at full resolution: a tile is the smallest thing we can load, and
+        coarsening it would only throw away resolution (e.g. give a single-pixel
+        profile at a coarser spectral sampling) without reading any less.
         """
+        spatial = (self.ndim - 2, self.ndim - 1)
         order = len(self._dask_arrays) - 1
         for level in range(order, -1, -1):
             array = self._dask_arrays[level]
@@ -271,6 +276,7 @@ class HiPSData(BaseCartesianData):
             chunk = array.chunksize
             level_box = []
             volume = 1
+            spatial_tiles = 1
             for axis in range(self.ndim):
                 factor = self.shape[axis] / shape[axis]
                 step = chunk[axis]
@@ -282,7 +288,9 @@ class HiPSData(BaseCartesianData):
                     hi = min(shape[axis], lo + step)
                 level_box.append((lo, hi))
                 volume *= hi - lo
-            if volume <= max_load or level == 0:
+                if axis in spatial:
+                    spatial_tiles *= (hi - lo) // step
+            if volume <= max_load or spatial_tiles <= 1 or level == 0:
                 return level, level_box
         return 0, level_box
 
@@ -314,16 +322,13 @@ class HiPSData(BaseCartesianData):
         avoids ever materialising a full-resolution mask.
         """
         array = self._dask_arrays[level]
-        coords = []
-        for axis in range(self.ndim):
-            factor = self.shape[axis] / array.shape[axis]
-            lo, hi = level_box[axis]
-            full_index = np.floor((np.arange(lo, hi) + 0.5) * factor).astype(int)
-            coords.append(np.clip(full_index, 0, self.shape[axis] - 1))
 
-        # Slice-based subsets are axis-separable, so evaluate them directly from
-        # the per-axis coordinates. This avoids SliceSubsetState.to_mask, which
-        # allocates a full-resolution array when given an array-style view.
+        # Slice-based subsets are axis-separable, so evaluate them directly. We
+        # select every level cell whose full-resolution footprint overlaps the
+        # slice (rather than requiring an exact coordinate match, which would
+        # miss a narrow slice such as a single pixel at a coarse level). This
+        # also avoids SliceSubsetState.to_mask, which allocates a full-resolution
+        # array when given an array-style view.
         slices = self._slice_for_data(subset_state)
         if slices is not None:
             mask = None
@@ -331,15 +336,26 @@ class HiPSData(BaseCartesianData):
                 if slc.start is None:
                     continue
                 stop = slc.stop if slc.stop is not None else slc.start + 1
-                inside = (coords[axis] >= slc.start) & (coords[axis] < stop)
+                factor = self.shape[axis] / array.shape[axis]
+                lo, hi = level_box[axis]
+                cells = np.arange(lo, hi)
+                lo_cell = int(np.floor(slc.start / factor))
+                hi_cell = max(lo_cell + 1, int(np.ceil(stop / factor)))
+                inside = (cells >= lo_cell) & (cells < hi_cell)
                 shape = [1] * self.ndim
                 shape[axis] = -1
                 axis_mask = inside.reshape(shape)
                 mask = axis_mask if mask is None else (mask & axis_mask)
             if mask is None:
                 return None
-            return np.broadcast_to(mask, tuple(len(c) for c in coords))
+            return np.broadcast_to(mask, tuple(hi - lo for lo, hi in level_box))
 
+        coords = []
+        for axis in range(self.ndim):
+            factor = self.shape[axis] / array.shape[axis]
+            lo, hi = level_box[axis]
+            full_index = np.floor((np.arange(lo, hi) + 0.5) * factor).astype(int)
+            coords.append(np.clip(full_index, 0, self.shape[axis] - 1))
         grids = np.meshgrid(*coords, indexing='ij')
         return subset_state.to_mask(self, view=tuple(grids))
 

@@ -145,14 +145,22 @@ def test_hips3d_data_image(example_hips3d_dataset):
 
 
 def _find_data_pixel(hips_data):
-    # Locate a full-resolution spatial pixel that contains data, by scanning a
-    # tile-aligned block over the region known to contain the dataset footprint.
-    block = np.asarray(hips_data._array[0:hips_data.shape[0], 768:1280, 1280:1792])
-    finite = np.isfinite(block).any(axis=0)
-    ys, xs = np.where(finite)
+    # Locate a full-resolution spatial pixel that contains data: find the
+    # footprint on the (small) coarsest level, then scan the corresponding
+    # full-resolution tile for a finite pixel.
+    coarse = np.asarray(hips_data._dask_arrays[0])
+    cys, cxs = np.where(np.isfinite(coarse).any(axis=0))
+    assert len(cys) > 0
+    middle = len(cys) // 2
+    step = hips_data._array.chunksize
+    y0 = (int(cys[middle] * hips_data.shape[1] / coarse.shape[1]) // step[1]) * step[1]
+    x0 = (int(cxs[middle] * hips_data.shape[2] / coarse.shape[2]) // step[2]) * step[2]
+    block = np.asarray(hips_data._array[0:hips_data.shape[0],
+                                        y0:y0 + step[1], x0:x0 + step[2]])
+    ys, xs = np.where(np.isfinite(block).any(axis=0))
     assert len(ys) > 0
     middle = len(ys) // 2
-    return 768 + int(ys[middle]), 1280 + int(xs[middle])
+    return y0 + int(ys[middle]), x0 + int(xs[middle])
 
 
 def test_hips3d_profile(example_hips3d_dataset):
@@ -361,6 +369,58 @@ def test_hips3d_pixel_subset_state(example_hips3d_dataset):
 
     profile = hips_data.compute_statistic('mean', hips_data.main_components[0],
                                           axis=(1, 2), subset_state=subset_state)
+    assert len(profile) == hips_data.shape[0]
+    assert np.isfinite(profile).any()
+
+
+def test_hips3d_pixel_subset_single_tile(example_hips3d_deep_dataset):
+
+    # Regression test: a single-pixel selection on a HiPS where one full
+    # resolution tile is larger than the load budget. The pixel spans a single
+    # spatial tile, so it must still be read at full resolution (giving the
+    # exact spectrum), not coarsened to a level where the slice mask would miss
+    # the pixel entirely and the profile would come out empty.
+
+    hips_data = HiPSData(example_hips3d_deep_dataset, label='HiPS3D Deep')
+    yc, xc = _find_data_pixel(hips_data)
+
+    slices = [slice(None)] * hips_data.ndim
+    slices[1] = slice(yc, yc + 1)
+    slices[2] = slice(xc, xc + 1)
+    subset_state = PixelSubsetState(hips_data, slices)
+
+    box = hips_data._bounding_box(subset_state, 40000000)
+    order = len(hips_data._dask_arrays) - 1
+
+    # A tile is bigger than this tiny budget, but the single tile must still be
+    # read at full resolution rather than coarsened.
+    tile_volume = int(np.prod(hips_data._array.chunksize))
+    tiny = tile_volume // 2
+    level, level_box = hips_data._select_level(box, tiny)
+    assert level == order
+
+    # The mask selects the pixel across all spectral channels.
+    mask = hips_data._level_mask(subset_state, level, level_box)
+    assert mask.sum() == hips_data.shape[0]
+
+    # Even forced onto the coarsest level, the overlap-based selection picks the
+    # cell containing the pixel rather than missing it (which used to give an
+    # empty mask, and hence an empty profile).
+    coarse = hips_data._dask_arrays[0]
+    coarse_box = []
+    for axis in range(hips_data.ndim):
+        factor = hips_data.shape[axis] / coarse.shape[axis]
+        step = coarse.chunksize[axis]
+        clo = (int(box[axis][0] / factor) // step) * step
+        chi = min(coarse.shape[axis], clo + step)
+        coarse_box.append((clo, chi))
+    assert hips_data._level_mask(subset_state, 0, coarse_box).sum() >= 1
+
+    # End to end: the profile is full length and not empty, even with a tiny
+    # budget that would otherwise force coarsening.
+    profile = hips_data.compute_statistic('mean', hips_data.main_components[0],
+                                          axis=(1, 2), subset_state=subset_state,
+                                          max_load=tiny)
     assert len(profile) == hips_data.shape[0]
     assert np.isfinite(profile).any()
 
