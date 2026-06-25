@@ -8,7 +8,7 @@ from glue.core.fixed_resolution_buffer import compute_fixed_resolution_buffer
 
 class HiPSData(BaseCartesianData):
 
-    def __init__(self, directory_or_url, *, label):
+    def __init__(self, directory_or_url, *, label, wcs_override=None):
         from reproject.hips import hips_as_dask_array
         self._array, self._wcs = hips_as_dask_array(directory_or_url)
         self._dask_arrays = []
@@ -24,10 +24,26 @@ class HiPSData(BaseCartesianData):
             self._level_wcs.append(wcs)
         self._dask_arrays.append(self._array)
         self._level_wcs.append(self._wcs)
+
+        # The public coordinate system can be customized via wcs_override, a
+        # callable that is given a copy of the dataset's WCS and returns the WCS
+        # to use as ``coords``. This is useful for HiPS3D datasets where the
+        # third axis is stored as a spectral (or time) axis but actually means
+        # something else, e.g. distance: the callable can switch CTYPE3 to
+        # 'DIST' and CUNIT3 to 'kpc'. The original WCS is always kept internally
+        # for the multi-resolution mapping.
+        if wcs_override is None:
+            coords = self._wcs
+        else:
+            modified = wcs_override(self._wcs.deepcopy())
+            coords = self._wcs if modified is None else modified
+
         self.data_cid = ComponentID(label="values", parent=self)
         self._label = label
         self._nan = np.broadcast_to(np.nan, self._array.shape)
         super().__init__()
+        # Set after super().__init__(), which would otherwise reset _coords.
+        self._coords = coords
 
     @property
     def label(self):
@@ -35,7 +51,7 @@ class HiPSData(BaseCartesianData):
 
     @property
     def coords(self):
-        return self._wcs
+        return self._coords
 
     @property
     def shape(self):

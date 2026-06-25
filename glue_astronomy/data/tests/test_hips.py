@@ -297,6 +297,47 @@ def test_hips3d_profile_coarse_spectral_range(example_hips3d_deep_dataset):
     assert abs(int(full_finite.max()) - int(coarse_finite.max())) <= 2
 
 
+def test_hips3d_wcs_override(example_hips3d_dataset):
+
+    # The third axis of a HiPS3D is stored as a spectral axis, but a user may be
+    # using it to represent something else (e.g. distance). wcs_override lets
+    # them relabel it; the original WCS is kept internally for the
+    # multi-resolution mapping.
+
+    def to_distance(wcs):
+        wcs.wcs.ctype[2] = 'DIST'
+        wcs.wcs.cunit[2] = 'kpc'
+        wcs.wcs.crpix[2] = 1
+        wcs.wcs.crval[2] = 0
+        wcs.wcs.cdelt[2] = 10
+        wcs.wcs.set()
+        return wcs
+
+    hips_data = HiPSData(example_hips3d_dataset, label='HiPS3D Data',
+                         wcs_override=to_distance)
+
+    # The public coords reflect the override...
+    assert hips_data.coords.world_axis_units[2] == 'kpc'
+    assert hips_data.coords.wcs.ctype[2] == 'DIST'
+    assert [c.label for c in hips_data.world_component_ids][0] == 'Dist'
+
+    # ...but the WCS used internally for the multi-resolution mapping is intact.
+    assert hips_data._wcs.wcs.ctype[2] == 'FREQ-LOG'
+
+    # And statistics still work (they do not depend on the public coords).
+    yc, xc = _find_data_pixel(hips_data)
+    px = hips_data.pixel_component_ids
+    subset_state = ((px[1] > yc - 0.5) & (px[1] < yc + 0.5) &
+                    (px[2] > xc - 0.5) & (px[2] < xc + 0.5))
+    profile = hips_data.compute_statistic('mean', hips_data.main_components[0],
+                                          axis=(1, 2), subset_state=subset_state)
+    assert len(profile) == hips_data.shape[0]
+
+    # The default (no override) keeps the spectral WCS as the public coords.
+    default = HiPSData(example_hips3d_dataset, label='default')
+    assert default.coords.wcs.ctype[2] == 'FREQ-LOG'
+
+
 def test_hips3d_pixel_subset_state(example_hips3d_dataset):
 
     # The single-pixel selection tool produces a PixelSubsetState (a slice-based
