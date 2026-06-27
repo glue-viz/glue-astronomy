@@ -153,7 +153,7 @@ class CCDDataHandler(NDDataArrayHandler):
 
         values = data.get_data(attribute)
         values, mask = _get_value_and_mask(subset_state, data, values)
-        values = u.Quantity(values, unit=component.units)
+        values = u.Quantity(values, unit=component.units, copy=False)
 
         if has_fitswcs:
             result = CCDData(values, mask=mask, wcs=wcs, meta=data.meta)
