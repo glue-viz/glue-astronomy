@@ -3,6 +3,10 @@ lint.ignore = [
     # NOTE: to find a good code to fix, run:
     # ruff check --select="ALL" --statistics glue_qt/<subpackage>
 
+    # Ignore rules that are also ignored in glue-viz/glue
+    "CPY001",  # Missing copyright notice at top of file
+    "PLR0917",  # too-many-positional-arguments
+
     # flake8-unused-arguments (ARG)
     "ARG001",  # unused-function-argument
     "ARG002",  # unused-method-argument
